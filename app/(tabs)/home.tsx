@@ -79,9 +79,12 @@ export default function HomeScreen() {
           {/* Top-up Button */}
           <View className="flex-row mb-2">
             <Text className="text-white text-2xl font-semibold text-center mt-auto">John Harley Aparece</Text>
-            <TouchableOpacity className="bg-yellow-500 px-4 py-2 rounded ml-auto">
-              <Text className="text-[#0A2A54] font-semibold text-lg">Top-up</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                className="bg-yellow-500 px-4 py-2 rounded ml-auto"
+                onPress={() => router.push('/topup')}
+              >
+                <Text className="text-[#0A2A54] font-semibold text-lg">Top-up</Text>
+              </TouchableOpacity>
           </View>
         </View>
 

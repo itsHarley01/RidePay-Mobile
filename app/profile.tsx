@@ -2,7 +2,7 @@
 import ModalMessage from '@/components/DiscountModal'; // 👈 Import modal
 import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
-import { Entypo, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -66,24 +66,6 @@ const handleAccountDiscount = () => {
           <TouchableOpacity style={{ backgroundColor: colors.secondaryBackground }} className="flex-row items-center p-3 border border-gray-200 rounded">
             <MaterialIcons name="edit" size={20} color={colors.subtext} />
             <Text style={{ color: colors.text }} className="text-base ml-2">Edit Profile</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={{ backgroundColor: colors.secondaryBackground }} className="flex-row items-center p-3 border border-gray-200 rounded">
-            <FontAwesome5 name="key" size={18} color={colors.subtext} />
-            <Text style={{ color: colors.text }} className="text-base ml-3">Change Password</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={{ backgroundColor: colors.secondaryBackground }} className="flex-row items-center p-3 border border-gray-200 rounded"
-            onPress={handleAccountDiscount}
-          >
-            <MaterialIcons name="discount" size={20} color={colors.subtext} />
-            <Text style={{ color: colors.text }} className="text-base ml-2">Account Discount</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={{ backgroundColor: colors.secondaryBackground }} className="flex-row items-center p-3 border border-gray-200 rounded">
-            <Entypo name="warning" size={20} color="red" />
-            <Text className="text-base ml-3 text-red-600">Freeze Account</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

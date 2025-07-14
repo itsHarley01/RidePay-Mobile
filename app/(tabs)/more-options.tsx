@@ -35,7 +35,7 @@ export default function ExplorePage() {
       <Text style={{ color: colors.text }} className="text-xl font-bold mb-4">Services</Text>
       <View className="flex-row flex-wrap justify-between mb-8">
         {[
-          { icon: <Ionicons name="wallet" size={28} color={colors.text} />, label: "Top Up" },
+          { icon: <Ionicons name="wallet" size={28} color={colors.text} />, label: "Top Up", action: () => router.push('/topup') },
           { icon: <Ionicons name="pricetags" size={28} color={colors.text} />, label: "Discount", action: handleAccountDiscount },
           { icon: <Ionicons name="chatbubble-ellipses" size={28} color={colors.text} />, label: "Support" },
           { icon: <MaterialIcons name="history" size={28} color={colors.text} />, label: "History" },
