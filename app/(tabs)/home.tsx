@@ -89,13 +89,19 @@ export default function HomeScreen() {
         </View>
 
         {/* Map Placeholder */}
-        <View className="flex h-60 bg-gray-200 rounded-xl items-center elevation-lg justify-center shadow-md mb-6 mx-4 overflow-hidden">
-          <Image
-            source={require('@/assets/images/map1.jpg')} 
-            className="w-full h-full"
-            resizeMode="cover"
-          />
-        </View>
+        <TouchableOpacity
+           onPress={() => router.push('/locations/map')}
+           activeOpacity={0.9}
+           className="mx-4 mb-6 rounded-xl overflow-hidden"
+         >
+           <View className="flex h-60 bg-gray-200 items-center justify-center shadow-md elevation-lg">
+             <Image
+               source={require('@/assets/images/map1.jpg')}
+               className="w-full h-full"
+               resizeMode="cover"
+             />
+           </View>
+        </TouchableOpacity>
 
         {/* Carousel Section */}
         <View className="mb-6">

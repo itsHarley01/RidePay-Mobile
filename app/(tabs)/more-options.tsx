@@ -59,12 +59,12 @@ export default function ExplorePage() {
       <Text style={{ color: colors.text }} className="text-xl font-bold mb-4">Locations</Text>
       <View className="flex-row flex-wrap justify-between mb-8">
         {[
-          { icon: <Entypo name="location-pin" size={28} color={colors.text} />, label: "Top-Up Spots" },
-          { icon: <MaterialIcons name="directions-bus" size={28} color={colors.text} />, label: "Live Bus" },
-          { icon: <Ionicons name="map" size={28} color={colors.text} />, label: "Bus Routes" },
-          { icon: <Entypo name="location" size={28} color={colors.text} />, label: "Nearby Terminals" },
+          { icon: <Entypo name="location-pin" size={28} color={colors.text} />, label: "Top-Up Spots", action: () => router.push('/locations/topup-locations') },
+          { icon: <MaterialIcons name="directions-bus" size={28} color={colors.text} />, label: "Live Bus", action: () => router.push('/locations/live-bus') },
+          { icon: <Ionicons name="map" size={28} color={colors.text} />, label: "Bus Routes", action: () => router.push('/locations/bus-routes') },
+          { icon: <Entypo name="location" size={28} color={colors.text} />, label: "Nearby Terminals", action: () => router.push('/locations/nearby-terminals') },
         ].map((item, idx) => (
-          <TouchableOpacity key={idx} className="w-1/3 items-center mb-6">
+          <TouchableOpacity key={idx} onPress={item.action} className="w-1/3 items-center mb-6">
             <View style={{ backgroundColor: colors.accent }} className=" p-4 rounded-full mb-2">
               {item.icon}
             </View>
