@@ -18,7 +18,7 @@ export default function MarkerInfoModal({ marker, onClose, distance }) {
             </TouchableOpacity>
         </View>
       <Text className="text-gray-200 mb-2">{marker.description}</Text>
-      <Text className="text-gray-200">Distance: {distance} km</Text>
+      <Text className="text-gray-200">Distance: {distance} Km</Text>
     </View>
   );
 }
