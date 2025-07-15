@@ -1,8 +1,32 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import MarkerInfoModal from '@/components/MarkerInfoModal'; // Adjust path as needed
+import { FontAwesome5 } from '@expo/vector-icons';
+import * as Location from 'expo-location';
+import { useRouter } from 'expo-router';
+import { getDistance } from 'geolib';
+import React, { useEffect, useRef, useState } from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
+import mapStyle from '../../assets/map/mapStyle.json';
 
 export default function TopupLocations() {
+  const router = useRouter();
+  const mapRef = useRef(null);
+  const [selectedMarker, setSelectedMarker] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+
+      const location = await Location.getCurrentPositionAsync({});
+      setUserLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+    })();
+  }, []);
+
   const markers = [
     {
       id: '1',
@@ -32,24 +56,71 @@ export default function TopupLocations() {
 
   return (
     <View style={styles.container}>
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: 10.3157,
-          longitude: 123.8854,
-          latitudeDelta: 0.1,
-          longitudeDelta: 0.1,
-        }}
+      {/* Back Button */}
+      <TouchableOpacity
+        onPress={() => router.back()}
+        className="absolute top-12 left-5 bg-black/60 px-4 py-2 w-12 h-12 rounded-full z-10 justify-center items-center"
       >
-        {markers.map(marker => (
+        <FontAwesome5 name="arrow-left" size={20} color="white" />
+      </TouchableOpacity>
+
+      {/* Map View */}
+      <MapView
+        ref={mapRef}
+        style={styles.map}
+        customMapStyle={mapStyle}
+        initialRegion={{
+          latitude: 10.3185,
+          longitude: 123.9075,
+          latitudeDelta: 0.005,
+          longitudeDelta: 0.005,
+        }}
+        showsUserLocation
+        showsMyLocationButton={false}
+        onPress={() => setSelectedMarker(null)} // Dismiss  on map tap
+      >
+        {markers.map((marker) => (
           <Marker
             key={marker.id}
             coordinate={marker.coordinate}
             title={marker.title}
             description={marker.description}
+            onPress={() => setSelectedMarker(marker)}
           />
         ))}
       </MapView>
+
+      {/* Locate Me Button */}
+      <TouchableOpacity
+        className={`absolute ${
+          selectedMarker ? 'bottom-[30%]' : 'bottom-5'
+        } right-5 bg-yellow-500 p-3 rounded-full shadow z-10 w-16 h-16 justify-center items-center`}
+        onPress={() => {
+          if (userLocation) {
+            mapRef.current?.animateToRegion({
+              latitude: userLocation.latitude,
+              longitude: userLocation.longitude,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            });
+          }
+        }}
+      >
+        <FontAwesome5 name="location-arrow" size={25} color="#333" />
+      </TouchableOpacity>
+
+      {/* Modal */}
+      {selectedMarker && (
+        <MarkerInfoModal
+          marker={selectedMarker}
+          distance={
+            userLocation
+              ? (getDistance(userLocation, selectedMarker.coordinate) / 1000).toFixed(2)
+              : '...'
+          }
+          onClose={() => setSelectedMarker(null)}
+        />
+      )}
     </View>
   );
 }
