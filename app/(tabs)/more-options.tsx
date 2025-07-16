@@ -15,6 +15,20 @@ export default function ExplorePage() {
   const colors = theme === 'dark' ? darkColors : lightColors;
   const [showDiscountModal, setShowDiscountModal] = useState(false);
 
+  const handleAboutUs = () => {
+    router.push('/aboutus');
+  };
+
+  const handleSupport = () => {
+    router.push('/support');
+  };
+
+
+const handleReport = () => {
+  router.push('/report');
+};
+
+
   const handleAccountDiscount = () => {
   const hasDiscount = true;
 
@@ -37,9 +51,9 @@ export default function ExplorePage() {
         {[
           { icon: <Ionicons name="wallet" size={28} color={colors.text} />, label: "Top Up" },
           { icon: <Ionicons name="pricetags" size={28} color={colors.text} />, label: "Discount", action: handleAccountDiscount },
-          { icon: <Ionicons name="chatbubble-ellipses" size={28} color={colors.text} />, label: "Support" },
+          { icon: <Ionicons name="chatbubble-ellipses" size={28} color={colors.text} />, label: "Support", action: handleSupport },
           { icon: <MaterialIcons name="history" size={28} color={colors.text} />, label: "History" },
-          { icon: <MaterialIcons name="report-problem" size={28} color={colors.text} />, label: "Report" },
+          { icon: <MaterialIcons name="report-problem" size={28} color={colors.text} />, label: "Report", action: handleReport },
           { icon: <Ionicons name="thumbs-up" size={28} color={colors.text} />, label: "Feedback" },
         ].map((item, idx) => (
           <TouchableOpacity
@@ -77,19 +91,24 @@ export default function ExplorePage() {
       <Text style={{ color: colors.text }} className="text-xl font-bold mb-4">Others</Text>
       <View className="flex-row flex-wrap gap-x-4 mb-32">
         {[
-          { icon: <Ionicons name="help-circle" size={28} color={colors.text} />, label: "FAQ" },
-          { icon: <Ionicons name="book" size={28} color={colors.text} />, label: "App Guide" },
-          { icon: <Ionicons name="information-circle" size={28} color={colors.text} />, label: "About Us" },
-          { icon: <Ionicons name="shield-checkmark" size={28} color={colors.text} />, label: "Privacy Policy" },
-          { icon: <Ionicons name="document-text" size={28} color={colors.text} />, label: "Terms & Conditions" },
-        ].map((item, idx) => (
-          <TouchableOpacity key={idx} className="w-[30%] items-center mb-6">
-            <View style={{ backgroundColor: colors.accent }} className=" p-4 rounded-full mb-2">
-              {item.icon}
-            </View>
-            <Text  style={{ color: colors.text }} className="text-sm text-center">{item.label}</Text>
-          </TouchableOpacity>
-        ))}
+  { icon: <Ionicons name="help-circle" size={28} color={colors.text} />, label: "FAQ" },
+  { icon: <Ionicons name="book" size={28} color={colors.text} />, label: "App Guide" },
+  { icon: <Ionicons name="information-circle" size={28} color={colors.text} />, label: "About Us", action: handleAboutUs },
+  { icon: <Ionicons name="shield-checkmark" size={28} color={colors.text} />, label: "Privacy Policy" },
+  { icon: <Ionicons name="document-text" size={28} color={colors.text} />, label: "Terms & Conditions" },
+].map((item, idx) => (
+  <TouchableOpacity
+    key={idx}
+    onPress={item.action} // ✅ this enables navigation
+    className="w-[30%] items-center mb-6"
+  >
+    <View style={{ backgroundColor: colors.accent }} className=" p-4 rounded-full mb-2">
+      {item.icon}
+    </View>
+    <Text style={{ color: colors.text }} className="text-sm text-center">{item.label}</Text>
+  </TouchableOpacity>
+))}
+
       </View>
 
       <ModalMessage

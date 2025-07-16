@@ -68,11 +68,14 @@ const handleAccountDiscount = () => {
             <Text style={{ color: colors.text }} className="text-base ml-2">Edit Profile</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={{ backgroundColor: colors.secondaryBackground }} className="flex-row items-center p-3 border border-gray-200 rounded">
-            <FontAwesome5 name="key" size={18} color={colors.subtext} />
-            <Text style={{ color: colors.text }} className="text-base ml-3">Change Password</Text>
-          </TouchableOpacity>
-
+          <TouchableOpacity
+  style={{ backgroundColor: colors.secondaryBackground }}
+  className="flex-row items-center p-3 border border-gray-200 rounded"
+  onPress={() => router.push('/change-password')} // 👈 Route to change password page
+>
+  <FontAwesome5 name="key" size={18} color={colors.subtext} />
+  <Text style={{ color: colors.text }} className="text-base ml-3">Change Password</Text>
+</TouchableOpacity>
           <TouchableOpacity
             style={{ backgroundColor: colors.secondaryBackground }} className="flex-row items-center p-3 border border-gray-200 rounded"
             onPress={handleAccountDiscount}
