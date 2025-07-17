@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 
 export default function LiveBus() {
@@ -18,12 +18,13 @@ export default function LiveBus() {
         <Marker
           coordinate={{ latitude: 10.3157, longitude: 123.8854 }}
           title="Bus Location"
+          image={require('../../assets/map/bus-pin.png')}
         >
-          <Image
-            source={require('../../assets/images/dark-logo.png')}
-            style={{ width: 40, height: 40 }}
+          {/* <Image
+            source={require('../../assets/map/bus-pin.png')}
+            style={{ width: 40, height: 40, resizeMode: 'contain',}}
             resizeMode="contain"
-          />
+          /> */}
         </Marker>
       </MapView>
     </View>
