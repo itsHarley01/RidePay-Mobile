@@ -2,7 +2,7 @@
 import ModalMessage from '@/components/DiscountModal'; // 👈 Import modal
 import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
-import { Entypo, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -67,7 +67,6 @@ const handleAccountDiscount = () => {
             <MaterialIcons name="edit" size={20} color={colors.subtext} />
             <Text style={{ color: colors.text }} className="text-base ml-2">Edit Profile</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
   style={{ backgroundColor: colors.secondaryBackground }}
   className="flex-row items-center p-3 border border-gray-200 rounded"

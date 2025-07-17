@@ -103,18 +103,28 @@ export default function TabLayout() {
         />
 
         {/* Scan & Pay */}
+
         <Tabs.Screen
-          name="scan-pay"
+          name="dummy-scanpay" 
           options={{
             tabBarLabel: () => null,
-            tabBarIcon: () => (
-              <View className="absolute -top-6 w-16 h-16 bg-yellow-400 rounded-full justify-center items-center shadow-md border-[4px] border-[#0A2A54]">
+            tabBarButton: () => (
+              <TouchableOpacity
+                onPress={() => router.push('/scan-pay')}
+                className="absolute -top-4 w-20 h-20 bg-yellow-400 rounded-full justify-center items-center shadow-md border-[4px] border-[#0A2A54]"
+                style={{
+                  shadowColor: '#000',
+                  shadowOpacity: 0.1,
+                  shadowRadius: 10,
+                  shadowOffset: { width: 0, height: 4 },
+                  elevation: 10,
+                }}
+              >
                 <MaterialIcons name="center-focus-strong" size={28} color="#0A2A54" />
-              </View>
+              </TouchableOpacity>
             ),
           }}
         />
-
 
         {/* Explore */}
         <Tabs.Screen
