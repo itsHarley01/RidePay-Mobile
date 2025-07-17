@@ -10,6 +10,7 @@ export default function AboutScreen() {
           This app is developed to make commuting easier and more convenient.
 
           ano? 
+          imo mama naay tama 
         
         </Text>
         <Text className="text-sm text-gray-500">Version 1.0.0</Text>
