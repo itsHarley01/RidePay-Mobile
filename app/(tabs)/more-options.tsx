@@ -38,9 +38,9 @@ export default function ExplorePage() {
           { icon: <Ionicons name="wallet" size={28} color={colors.text} />, label: "Top Up", action: () => router.push('/topup') },
           { icon: <Ionicons name="pricetags" size={28} color={colors.text} />, label: "Discount", action: handleAccountDiscount },
           { icon: <Ionicons name="chatbubble-ellipses" size={28} color={colors.text} />, label: "Support", action: () => router.push('/support')},
-          { icon: <MaterialIcons name="history" size={28} color={colors.text} />, label: "History" },
+          { icon: <MaterialIcons name="history" size={28} color={colors.text} />, label: "History", action: () => router.push('/transaction-history') },
           { icon: <MaterialIcons name="report-problem" size={28} color={colors.text} />, label: "Report", action:  () => router.push('/report')},
-          { icon: <Ionicons name="thumbs-up" size={28} color={colors.text} />, label: "Feedback", action: () => router.push('/transaction-history') },
+          { icon: <Ionicons name="thumbs-up" size={28} color={colors.text} />, label: "Feedback" },
         ].map((item, idx) => (
           <TouchableOpacity
             key={idx}
