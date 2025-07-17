@@ -1,11 +1,11 @@
 // /app/(tabs)/settings/permissions.tsx
 import SettingTemplate from '@/components/SettingTemplate';
-import { View, Text } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import { useState } from 'react';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
+import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
+import { useState } from 'react';
+import { Text, View } from 'react-native';
 
 export default function PermissionsScreen() {
   const { theme } = useTheme();
@@ -13,7 +13,6 @@ export default function PermissionsScreen() {
 
   const [locationPermission, setLocationPermission] = useState('while_using');
   const [cameraPermission, setCameraPermission] = useState('ask_every_time');
-  const [microphonePermission, setMicrophonePermission] = useState('denied');
 
   const permissionOptions = [
     { label: 'Allow all the time', value: 'always' },
@@ -45,11 +44,11 @@ export default function PermissionsScreen() {
 
       <View
         style={{
-          borderColor: colors.border,
+          borderColor: colors.subtext,
           borderWidth: 1,
           borderRadius: 8,
           overflow: 'hidden',
-          backgroundColor: colors.card,
+          backgroundColor: colors.background,
         }}
       >
         <Picker
@@ -101,12 +100,6 @@ export default function PermissionsScreen() {
             <Ionicons name="camera-outline" size={20} color={colors.text} />
           )}
 
-          {renderPermissionRow(
-            'Microphone Access',
-            microphonePermission,
-            setMicrophonePermission,
-            <MaterialCommunityIcons name="microphone-outline" size={20} color={colors.text} />
-          )}
         </View>
       </View>
     </SettingTemplate>

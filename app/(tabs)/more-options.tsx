@@ -15,20 +15,6 @@ export default function ExplorePage() {
   const colors = theme === 'dark' ? darkColors : lightColors;
   const [showDiscountModal, setShowDiscountModal] = useState(false);
 
-  const handleAboutUs = () => {
-    router.push('/aboutus');
-  };
-
-  const handleSupport = () => {
-    router.push('/support');
-  };
-
-
-const handleReport = () => {
-  router.push('/report');
-};
-
-
   const handleAccountDiscount = () => {
   const hasDiscount = true;
 
@@ -51,10 +37,10 @@ const handleReport = () => {
         {[
           { icon: <Ionicons name="wallet" size={28} color={colors.text} />, label: "Top Up", action: () => router.push('/topup') },
           { icon: <Ionicons name="pricetags" size={28} color={colors.text} />, label: "Discount", action: handleAccountDiscount },
-          { icon: <Ionicons name="chatbubble-ellipses" size={28} color={colors.text} />, label: "Support", action: handleSupport },
+          { icon: <Ionicons name="chatbubble-ellipses" size={28} color={colors.text} />, label: "Support", action: () => router.push('/support')},
           { icon: <MaterialIcons name="history" size={28} color={colors.text} />, label: "History" },
-          { icon: <MaterialIcons name="report-problem" size={28} color={colors.text} />, label: "Report", action: handleReport },
-          { icon: <Ionicons name="thumbs-up" size={28} color={colors.text} />, label: "Feedback" },
+          { icon: <MaterialIcons name="report-problem" size={28} color={colors.text} />, label: "Report", action:  () => router.push('/report')},
+          { icon: <Ionicons name="thumbs-up" size={28} color={colors.text} />, label: "Feedback", action: () => router.push('/transaction-history') },
         ].map((item, idx) => (
           <TouchableOpacity
             key={idx}
@@ -93,7 +79,7 @@ const handleReport = () => {
         {[
   { icon: <Ionicons name="help-circle" size={28} color={colors.text} />, label: "FAQ" },
   { icon: <Ionicons name="book" size={28} color={colors.text} />, label: "App Guide" },
-  { icon: <Ionicons name="information-circle" size={28} color={colors.text} />, label: "About Us", action: handleAboutUs },
+  { icon: <Ionicons name="information-circle" size={28} color={colors.text} />, label: "About Us", action: () => router.push('/aboutus')},
   { icon: <Ionicons name="shield-checkmark" size={28} color={colors.text} />, label: "Privacy Policy" },
   { icon: <Ionicons name="document-text" size={28} color={colors.text} />, label: "Terms & Conditions" },
 ].map((item, idx) => (

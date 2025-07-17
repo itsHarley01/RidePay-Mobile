@@ -18,7 +18,7 @@ export default function SettingsTab() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
-        style={{ flex: 1, paddingHorizontal: 16, paddingVertical: 24 }}
+        className='px-6'
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
