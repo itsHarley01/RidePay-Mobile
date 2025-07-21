@@ -77,10 +77,10 @@ export default function ExplorePage() {
       <Text style={{ color: colors.text }} className="text-xl font-bold mb-4">Others</Text>
       <View className="flex-row flex-wrap gap-x-4 mb-32">
         {[
-  { icon: <Ionicons name="help-circle" size={28} color={colors.text} />, label: "FAQ" },
+  { icon: <Ionicons name="help-circle" size={28} color={colors.text} />, label: "FAQ", action: () => router.push('/faq')},
   { icon: <Ionicons name="book" size={28} color={colors.text} />, label: "App Guide" },
   { icon: <Ionicons name="information-circle" size={28} color={colors.text} />, label: "About Us", action: () => router.push('/aboutus')},
-  { icon: <Ionicons name="shield-checkmark" size={28} color={colors.text} />, label: "Privacy Policy" },
+  { icon: <Ionicons name="shield-checkmark" size={28} color={colors.text} />, label: "Privacy Policy", action: () => router.push('/privacy-policy')},
   { icon: <Ionicons name="document-text" size={28} color={colors.text} />, label: "Terms & Conditions" },
 ].map((item, idx) => (
   <TouchableOpacity
