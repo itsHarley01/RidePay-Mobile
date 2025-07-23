@@ -64,7 +64,7 @@ export default function ProfilePage() {
           <Text className="text-white text-base mb-1">
             Name: <Text className="font-bold">helloworld</Text>
           </Text>
-          <Text className="text-white text-base">Email: sheitt@gmail.com</Text>
+          <Text className="text-white text-base">Email: mcalon@gmail.com</Text>
           {isFrozen && (
             <Text className="text-red-400 mt-2 text-center font-semibold">Account is Frozen</Text>
           )}

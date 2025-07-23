@@ -3,10 +3,11 @@ import SuccessModal from '@/components/SuccessModal';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  Alert,
   ScrollView,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 
 export default function RegisterPage() {
@@ -19,11 +20,47 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showModal, setShowModal] = useState(false);
 
-  const nextStep = () => setStep((prev) => prev + 1);
+  const validateStep = () => {
+    if (step === 1) {
+      if (!firstName.trim() || !lastName.trim()) {
+        Alert.alert('Missing Fields', 'Please enter your first and last name.');
+        return false;
+      }
+    }
+
+    if (step === 2) {
+      if (!email.trim() || !phoneNumber.trim()) {
+        Alert.alert('Missing Fields', 'Please enter your email and phone number.');
+        return false;
+      }
+    }
+
+    if (step === 3) {
+      if (!password || !confirmPassword) {
+        Alert.alert('Missing Fields', 'Please enter and confirm your password.');
+        return false;
+      }
+      if (password !== confirmPassword) {
+        Alert.alert('Password Mismatch', 'Passwords do not match.');
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const nextStep = () => {
+    if (validateStep()) {
+      setStep((prev) => prev + 1);
+    }
+  };
+
   const prevStep = () => setStep((prev) => prev - 1);
 
   const handleSubmit = () => {
-    setShowModal(true);
+    if (validateStep()) {
+      setShowModal(true);
+    }
   };
 
   const getStepIcon = (stepNumber: number) => {
@@ -33,25 +70,25 @@ export default function RegisterPage() {
 
   const getStepColor = (stepNumber: number) => {
     if (stepNumber < step) return 'bg-green-500';
-    if (stepNumber === step) return 'bg-blue-700';
+    if (stepNumber === step) return 'bg-blue-600';
     return 'bg-gray-300';
   };
 
   const renderProgressBar = () => (
-    <View className="w-full pt-12 px-6 bg-white">
-      <View className="flex-row justify-between items-center mb-3">
+    <View className="w-full pt-10 pb-4 px-6 bg-white">
+      <View className="flex-row justify-between items-center mb-2">
         {[1, 2, 3].map((stepNumber) => (
           <View key={stepNumber} className="flex-1 items-center">
             <View
-              className={`w-8 h-8 rounded-full ${getStepColor(
+              className={`w-7 h-7 rounded-full ${getStepColor(
                 stepNumber
               )} items-center justify-center mb-1`}
             >
-              <Text className="text-white font-bold text-sm text-center">
+              <Text className="text-white font-semibold text-sm text-center">
                 {getStepIcon(stepNumber)}
               </Text>
             </View>
-            <Text className="text-xs text-gray-500 text-center">
+            <Text className="text-[11px] text-gray-500 text-center">
               {stepNumber === 1
                 ? 'Name'
                 : stepNumber === 2
@@ -61,7 +98,7 @@ export default function RegisterPage() {
           </View>
         ))}
       </View>
-      <View className="w-full h-1 bg-gray-200 rounded-full overflow-hidden">
+      <View className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
         <View
           className="h-full rounded-full transition-all duration-500"
           style={{
@@ -75,12 +112,12 @@ export default function RegisterPage() {
 
   const renderStepTitle = () => {
     const titles = {
-      1: 'Step 1: Name',
-      2: 'Step 2: Contact Info',
-      3: 'Step 3: Create Password',
+      1: 'Step 1: Personal Information',
+      2: 'Step 2: Contact Details',
+      3: 'Step 3: Set Password',
     };
     return (
-      <Text className="text-xl font-semibold text-center mt-6 mb-4 text-gray-800">
+      <Text className="text-lg font-semibold text-center mt-5 mb-3 text-gray-700">
         {titles[step]}
       </Text>
     );
@@ -88,16 +125,12 @@ export default function RegisterPage() {
 
   return (
     <View className="flex-1 bg-white">
-      {/* Top Progress Bar */}
       {renderProgressBar()}
-
-      {/* Title under progress bar */}
       {renderStepTitle()}
 
-      {/* Step content centered */}
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-6">
         <View className="flex-1 justify-center items-center">
-          <View className="w-full max-w-md">
+          <View className="w-full max-w-md space-y-5">
             {step === 1 && (
               <>
                 <FloatingLabelInput
@@ -109,45 +142,44 @@ export default function RegisterPage() {
                   label="Last Name"
                   value={lastName}
                   onChangeText={setLastName}
-                  className='h-32'
                 />
                 <TouchableOpacity
-                  className="bg-blue-700 py-3 rounded-full"
+                  className="bg-[#0A2A54] py-3 rounded-full shadow-sm mt-4"
                   onPress={nextStep}
                 >
-                  <Text className="text-white text-center font-semibold text-base">Next</Text>
+                  <Text className="text-white text-center font-medium text-base">Next</Text>
                 </TouchableOpacity>
               </>
             )}
 
             {step === 2 && (
               <>
-                  <FloatingLabelInput
-                    label="Email"
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoComplete="email"
-                  />
-                  <FloatingLabelInput
-                    label="Phone Number"
-                    value={phoneNumber}
-                    onChangeText={setPhoneNumber}
-                    keyboardType="phone-pad"
-                    autoComplete="tel"
-                  />
-                <View className="flex-row justify-between space-x-4">
+                <FloatingLabelInput
+                  label="Email"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoComplete="email"
+                />
+                <FloatingLabelInput
+                  label="Phone Number"
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  keyboardType="phone-pad"
+                  autoComplete="tel"
+                />
+                <View className="flex-row justify-between space-x-3 mt-4">
                   <TouchableOpacity
-                    className="flex-1 border border-blue-700 py-3 rounded-full"
+                    className="flex-1 border border-blue-600 py-3 rounded-full"
                     onPress={prevStep}
                   >
-                    <Text className="text-blue-700 text-center font-semibold text-base">Back</Text>
+                    <Text className="text-blue-600 text-center font-medium text-base">Back</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    className="flex-1 bg-blue-700 py-3 rounded-full"
+                    className="flex-1 bg-[#0A2A54] py-3 rounded-full shadow-sm"
                     onPress={nextStep}
                   >
-                    <Text className="text-white text-center font-semibold text-base">Next</Text>
+                    <Text className="text-white text-center font-medium text-base">Next</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -164,23 +196,22 @@ export default function RegisterPage() {
                 />
                 <FloatingLabelInput
                   label="Confirm Password"
-                  secureTextEntry
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
-                  className="border rounded-xl px-4 py-3 mb-6 text-base"
+                  secureTextEntry
                 />
-                <View className="flex-row justify-between space-x-4">
+                <View className="flex-row justify-between space-x-3 mt-4">
                   <TouchableOpacity
-                    className="flex-1 border border-blue-700 py-3 rounded-full"
+                    className="flex-1 border border-blue-600 py-3 rounded-full"
                     onPress={prevStep}
                   >
-                    <Text className="text-blue-700 text-center font-semibold text-base">Back</Text>
+                    <Text className="text-blue-600 text-center font-medium text-base">Back</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    className="flex-1 bg-blue-700 py-3 rounded-full"
+                    className="flex-1 bg-[#0A2A54] py-3 rounded-full shadow-sm"
                     onPress={handleSubmit}
                   >
-                    <Text className="text-white text-center font-semibold text-base">Submit</Text>
+                    <Text className="text-white text-center font-medium text-base">Submit</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -189,7 +220,6 @@ export default function RegisterPage() {
         </View>
       </ScrollView>
 
-      {/* Success Modal */}
       <SuccessModal
         visible={showModal}
         message="Your account has been created successfully."
