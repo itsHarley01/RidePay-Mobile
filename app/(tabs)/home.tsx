@@ -5,7 +5,8 @@ import { darkColors, lightColors } from '@/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Dimensions, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, ScrollView, Text, TouchableOpacity, View, RefreshControl } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import Carousel from 'react-native-reanimated-carousel';
 
 const { width } = Dimensions.get('window');
@@ -22,7 +23,17 @@ export default function HomeScreen() {
   const colors = theme === 'dark' ? darkColors : lightColors;
   const [showBalance, setShowBalance] = useState(true);
   const balance = 1234.56;
-  
+
+  // Refresh control state and handler
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = () => {
+    setRefreshing(true);
+    // Insert your refresh logic here; e.g., calling an API or updating state.
+    // Simulate a refresh with a timeout:
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 2000);
+  };
 
   const sampleTransactions = [
     {
@@ -59,9 +70,18 @@ export default function HomeScreen() {
 
   return (
     <View style={{ backgroundColor: colors.background }} className="flex-1">
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 16 }}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={colors.highlight ? [colors.highlight] : undefined}
+          />
+        }
+      >
         {/* Balance Container */}
-        <View className="bg-[#0A2A54] rounded-xl p-4 mb-6 elevation-lg  ">
+        <View className="bg-[#0A2A54] rounded-xl p-4 mb-6 elevation-lg">
           {/* Top Row: Balance + Eye */}
           <View className="flex-row justify-between items-center mb-4">
             <View className="flex-col">
@@ -71,37 +91,49 @@ export default function HomeScreen() {
               <Text className="text-white text-base font-semibold">RidePay Balance</Text>
             </View>
 
-            <TouchableOpacity onPress={() => setShowBalance(!showBalance)} className='mb-auto'>
+            <TouchableOpacity onPress={() => setShowBalance(!showBalance)} className="mb-auto">
               <Ionicons name={showBalance ? 'eye' : 'eye-off'} size={21} color="white" />
             </TouchableOpacity>
           </View>
 
           {/* Top-up Button */}
           <View className="flex-row mb-2">
-            <Text className="text-white text-2xl font-semibold text-center mt-auto">John Harley Aparece</Text>
-              <TouchableOpacity
-                className="bg-yellow-500 px-4 py-2 rounded ml-auto"
-                onPress={() => router.push('/topup')}
-              >
-                <Text className="text-[#0A2A54] font-semibold text-lg">Top-up</Text>
-              </TouchableOpacity>
+            <Text className="text-white text-2xl font-semibold text-center mt-auto">
+              John Harley Aparece
+            </Text>
+            <TouchableOpacity
+              className="bg-yellow-500 px-4 py-2 rounded ml-auto"
+              onPress={() => router.push('/topup')}
+            >
+              <Text className="text-[#0A2A54] font-semibold text-lg">Top-up</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Map Placeholder */}
-        <TouchableOpacity
-           onPress={() => router.push('/locations/map')}
-           activeOpacity={0.9}
-           className="mx-4 mb-6 rounded-xl overflow-hidden"
-         >
-           <View className="flex h-60 bg-gray-200 items-center justify-center shadow-md elevation-lg">
-             <Image
-               source={require('@/assets/images/map1.jpg')}
-               className="w-full h-full"
-               resizeMode="cover"
-             />
-           </View>
-        </TouchableOpacity>
+        {/* Interactive Map */}
+        <View className="mx-4 mb-6 rounded-xl overflow-hidden">
+          <MapView
+            style={{ width: '100%', height: 240 }}
+            className="rounded-xl"
+            initialRegion={{
+              latitude: 14.5995,      // Example: Manila
+              longitude: 120.9842,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            }}
+            showsUserLocation
+            showsMyLocationButton
+            loadingEnabled
+            onPress={() => router.push('/locations/map')}
+          >
+            {/* Example Marker */}
+            <Marker
+              coordinate={{ latitude: 14.5995, longitude: 120.9842 }}
+              title="Your Location"
+              description="You are here"
+            />
+          </MapView>
+        </View>
 
         {/* Carousel Section */}
         <View className="mb-6">
@@ -128,9 +160,13 @@ export default function HomeScreen() {
         {/* Transactions Section */}
         <View style={{ backgroundColor: colors.secondaryBackground }} className="p-4 elevation-md shadow-sm mx-5 rounded-lg mb-20">
           <View className="flex-row justify-between items-center mb-6">
-            <Text style={{ color: colors.subtext }} className="text-xl font-bold">Transactions</Text>
+            <Text style={{ color: colors.subtext }} className="text-xl font-bold">
+              Transactions
+            </Text>
             <TouchableOpacity onPress={() => router.push('/transaction-history')}>
-              <Text style={{ color: colors.highlight }} className="text-lg font-medium">See all</Text>
+              <Text style={{ color: colors.highlight ?? '#FFD700' }} className="text-lg font-medium">
+                See all
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -150,8 +186,8 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        <View className='mb-32'>
-          <Footer/>
+        <View className="mb-32">
+          <Footer />
         </View>
       </ScrollView>
     </View>

@@ -5,6 +5,9 @@ import { Entypo, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -14,6 +17,7 @@ export default function ProfilePage() {
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [isFrozen, setIsFrozen] = useState(false);
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
+
 
   const handleAccountDiscount = () => {
     const hasDiscount = false; // 🔁 Replace with real logic later
@@ -29,13 +33,19 @@ export default function ProfilePage() {
     setShowFreezeConfirm(true); // show confirmation modal
   };
 
-  const confirmFreeze = () => {
-    setIsFrozen(true);
-    setShowFreezeConfirm(false);
-    Alert.alert("Account Frozen", "Your account has been frozen. Contact support to reactivate.");
-    // You could also add router.replace('/login') or an API call here
-  };
+ const confirmFreeze = async () => {
+  setIsFrozen(true);
+  setShowFreezeConfirm(false);
 
+  Alert.alert("Account Frozen", "Your account has been frozen. Contact support to reactivate.");
+
+  // Optional: remove token/profile info
+  await AsyncStorage.removeItem('userToken');
+  await AsyncStorage.removeItem('userProfile');
+
+  // Redirect to login or splash screen
+  router.replace('/'); // or replace with your actual login route
+};
   return (
     <View style={{ backgroundColor: colors.background }} className="flex-1 ">
       {/* Back Button */}
@@ -61,10 +71,11 @@ export default function ProfilePage() {
               <FontAwesome5 name="user" size={36} color="#ffffff" />
             </View>
           </View>
-          <Text className="text-white text-base mb-1">
+         <Text className="text-white text-base mb-1">
             Name: <Text className="font-bold">helloworld</Text>
           </Text>
           <Text className="text-white text-base">Email: mcalon@gmail.com</Text>
+
           {isFrozen && (
             <Text className="text-red-400 mt-2 text-center font-semibold">Account is Frozen</Text>
           )}

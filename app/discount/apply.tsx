@@ -1,14 +1,23 @@
 // File: app/discount/apply.tsx
 import { FontAwesome5 } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import React, { useState } from 'react';
+import {
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+  Alert,
+  Image,
+} from 'react-native';
 import AnimatedCircularProgress from '@/components/AnimatedCircularProgress';
 
 const stepsTotal = 5;
 
 export default function DiscountApply() {
   const [step, setStep] = useState(1);
+  const [imageUri, setImageUri] = useState<string | null>(null);
 
   const goBack = () => {
     if (step === 1) router.back();
@@ -22,6 +31,39 @@ export default function DiscountApply() {
     setStep(3);
   };
 
+  const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert('Permission required', 'You need to allow access to photo library');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const takePhoto = async () => {
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert('Permission required', 'You need to allow access to camera');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
   const progress = Math.round((step / stepsTotal) * 100);
 
   return (
@@ -31,13 +73,11 @@ export default function DiscountApply() {
         <FontAwesome5 name="arrow-left" size={20} color="#0A2A54" />
       </TouchableOpacity>
 
-      {/* Radial Progress (Simplified) */}
+      {/* Radial Progress */}
       <View className="items-center mb-6">
         <AnimatedCircularProgress progress={progress} />
-
       </View>
 
-      {/* Form Content */}
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
         <View className="space-y-6">
           {step === 1 && (
@@ -77,25 +117,48 @@ export default function DiscountApply() {
                 <Text className="text-white font-semibold">Next</Text>
               </TouchableOpacity>
               <TouchableOpacity
-              onPress={goBack}
-              className="mt-2 py-2 px-4 border border-gray-400 rounded-full w-full max-w-xs items-center">
-              <Text className="text-gray-700 font-medium">Back</Text>
+                onPress={goBack}
+                className="mt-2 py-2 px-4 border border-gray-400 rounded-full w-full max-w-xs items-center">
+                <Text className="text-gray-700 font-medium">Back</Text>
               </TouchableOpacity>
             </View>
           )}
-         
+
           {step === 3 && (
             <View className="items-center">
               <Text className="text-2xl font-bold text-center text-[#0c2340] mb-2">Upload Proof</Text>
               <Text className="text-center text-gray-600 mb-6 px-4">
                 Please upload a valid photo as proof for your selected discount.
               </Text>
-              <TouchableOpacity className="bg-yellow-500 p-4 rounded-full w-full max-w-xs mb-3 items-center">
+
+              <TouchableOpacity
+                onPress={takePhoto}
+                className="bg-yellow-500 p-4 rounded-full w-full max-w-xs mb-3 items-center"
+              >
                 <Text className="text-white font-semibold">Take a Photo</Text>
               </TouchableOpacity>
-              <TouchableOpacity className="bg-yellow-500 p-4 rounded-full w-full max-w-xs mb-6 items-center">
+
+              <TouchableOpacity
+                onPress={pickImage}
+                className="bg-yellow-500 p-4 rounded-full w-full max-w-xs mb-3 items-center"
+              >
                 <Text className="text-white font-semibold">Upload from Device</Text>
               </TouchableOpacity>
+
+              {imageUri && (
+                <Image
+                  source={{ uri: imageUri }}
+                  style={{
+                    width: 200,
+                    height: 200,
+                    borderRadius: 12,
+                    marginBottom: 16,
+                    borderWidth: 1,
+                    borderColor: '#ccc',
+                  }}
+                />
+              )}
+
               <TouchableOpacity
                 onPress={goNext}
                 className="bg-[#0c2340] py-3 px-6 rounded-full w-full max-w-xs items-center"
@@ -103,13 +166,12 @@ export default function DiscountApply() {
                 <Text className="text-white font-semibold">Next</Text>
               </TouchableOpacity>
               <TouchableOpacity
-              onPress={goBack}
-              className="mt-2 py-2 px-4 border border-gray-400 rounded-full w-full max-w-xs items-center">
-              <Text className="text-gray-700 font-medium">Back</Text>
+                onPress={goBack}
+                className="mt-2 py-2 px-4 border border-gray-400 rounded-full w-full max-w-xs items-center">
+                <Text className="text-gray-700 font-medium">Back</Text>
               </TouchableOpacity>
             </View>
           )}
-          
 
           {step === 4 && (
             <View className="items-center">
@@ -131,9 +193,9 @@ export default function DiscountApply() {
                 <Text className="text-white font-semibold">Submit</Text>
               </TouchableOpacity>
               <TouchableOpacity
-              onPress={goBack}
-              className="mt-2 py-2 px-4 border border-gray-400 rounded-full w-full max-w-xs items-center">
-              <Text className="text-gray-700 font-medium">Back</Text>
+                onPress={goBack}
+                className="mt-2 py-2 px-4 border border-gray-400 rounded-full w-full max-w-xs items-center">
+                <Text className="text-gray-700 font-medium">Back</Text>
               </TouchableOpacity>
             </View>
           )}
