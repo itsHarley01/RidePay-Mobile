@@ -1,5 +1,7 @@
+import { loginPassenger } from '@/api/loginApi';
 import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
+import { saveAuthData } from '@/utils/auth';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -23,15 +25,21 @@ export default function LoginScreen() {
       ? require('../assets/images/dark-logo.png')
       : require('../assets/images/ridepay-logo2.png');
 
-  const handleLogin = () => {
-    if (!email || !password) {
-      Alert.alert('Missing Information', 'Please enter both email and password.');
-      return;
-    }
-
-    // Auto-login if both fields are filled
-    router.replace('/(tabs)/home');
-  };
+    const handleLogin = async () => {
+      if (!email || !password) {
+        Alert.alert('Missing Information', 'Please enter both email and password.');
+        return;
+      }
+    
+      try {
+        const res = await loginPassenger({ email, password });
+        await saveAuthData(res.uid, res.token);
+      
+        router.replace('/(tabs)/home');
+      } catch (error: any) {
+        Alert.alert('Login Failed', error?.error || 'An unexpected error occurred.');
+      }
+    };
 
   return (
     <View style={{ backgroundColor: colors.background }} className="flex-1 justify-center items-center px-4">

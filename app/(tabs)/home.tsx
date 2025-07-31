@@ -1,13 +1,16 @@
+import { fetchUserDataByUid } from '@/api/fetchUserDataApi';
 import Footer from '@/components/Footer';
 import TransactionItem from '@/components/TransactionItem';
 import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
+import { getAuthData } from '@/utils/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Dimensions, Image, ScrollView, Text, TouchableOpacity, View, RefreshControl } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Dimensions, Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import Carousel from 'react-native-reanimated-carousel';
+
 
 const { width } = Dimensions.get('window');
 
@@ -22,17 +25,35 @@ export default function HomeScreen() {
   const { theme } = useTheme();
   const colors = theme === 'dark' ? darkColors : lightColors;
   const [showBalance, setShowBalance] = useState(true);
-  const balance = 1234.56;
+  const [userData, setUserData] = useState<{ firstName: string, lastName: string, balance: number } | null>(null);
+
+  const fetchUser = async () => {
+    try {
+      const { uid } = await getAuthData();
+      if (uid) {
+        const data = await fetchUserDataByUid(uid);
+        setUserData({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          balance: data.balance || 0,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch user data:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+  
 
   // Refresh control state and handler
   const [refreshing, setRefreshing] = useState(false);
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    // Insert your refresh logic here; e.g., calling an API or updating state.
-    // Simulate a refresh with a timeout:
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 2000);
+    await fetchUser(); // ⬅️ actually refresh user data
+    setRefreshing(false);
   };
 
   const sampleTransactions = [
@@ -86,7 +107,9 @@ export default function HomeScreen() {
           <View className="flex-row justify-between items-center mb-4">
             <View className="flex-col">
               <Text className="text-white text-4xl font-bold">
-                {showBalance ? `₱${balance.toFixed(2)}` : '***.**'}
+                {showBalance
+                  ? `₱${(userData?.balance ?? 0).toFixed(2)}`
+                  : '***.**'}
               </Text>
               <Text className="text-white text-base font-semibold">RidePay Balance</Text>
             </View>
@@ -99,7 +122,9 @@ export default function HomeScreen() {
           {/* Top-up Button */}
           <View className="flex-row mb-2">
             <Text className="text-white text-2xl font-semibold text-center mt-auto">
-              John Harley Aparece
+              {userData
+                ? `${userData.firstName} ${userData.lastName}`
+                : 'Loading...'}
             </Text>
             <TouchableOpacity
               className="bg-yellow-500 px-4 py-2 rounded ml-auto"

@@ -1,3 +1,4 @@
+import { registerPassenger } from '@/api/userApi';
 import FloatingLabelInput from '@/components/FloatingLabelInput';
 import SuccessModal from '@/components/SuccessModal';
 import { router } from 'expo-router';
@@ -57,11 +58,28 @@ export default function RegisterPage() {
 
   const prevStep = () => setStep((prev) => prev - 1);
 
-  const handleSubmit = () => {
-    if (validateStep()) {
+  const handleSubmit = async () => {
+    if (!validateStep()) return;
+  
+    try {
+      const payload = {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        password: password,
+        contactNumber: phoneNumber.trim(),
+      };
+    
+      await registerPassenger(payload);
+    
+      // Show success modal on successful registration
       setShowModal(true);
+    } catch (error: any) {
+      console.error('Registration Error:', error);
+      Alert.alert('Registration Failed', error?.error || 'Something went wrong. Please try again.');
     }
   };
+  
 
   const getStepIcon = (stepNumber: number) => {
     if (stepNumber < step) return '✓';
