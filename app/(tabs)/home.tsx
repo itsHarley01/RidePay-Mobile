@@ -1,4 +1,5 @@
 import { fetchUserDataByUid } from '@/api/fetchUserDataApi';
+import { getTransactions } from '@/api/fetchUserTransactions';
 import Footer from '@/components/Footer';
 import TransactionItem from '@/components/TransactionItem';
 import { useTheme } from '@/context/ThemeContext';
@@ -7,10 +8,17 @@ import { getAuthData } from '@/utils/auth';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Dimensions, Image, RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Dimensions,
+  Image,
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import Carousel from 'react-native-reanimated-carousel';
-
 
 const { width } = Dimensions.get('window');
 
@@ -24,77 +32,48 @@ export default function HomeScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = theme === 'dark' ? darkColors : lightColors;
+  const [loading, setLoading] = useState(true);
   const [showBalance, setShowBalance] = useState(true);
   const [userData, setUserData] = useState<{ firstName: string, lastName: string, balance: number } | null>(null);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchUser = async () => {
-    try {
-      const { uid } = await getAuthData();
-      if (uid) {
-        const data = await fetchUserDataByUid(uid);
-        setUserData({
-          firstName: data.firstName,
-          lastName: data.lastName,
-          balance: data.balance || 0,
-        });
-      }
-    } catch (err) {
-      console.error('Failed to fetch user data:', err);
+  try {
+    setLoading(true);
+    const { uid } = await getAuthData();
+
+    if (uid) {
+      const user = await fetchUserDataByUid(uid);
+      const txns = await getTransactions({ fromUser: uid }); // ✅ this line
+
+      setUserData({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        balance: user.balance ?? 0,
+      });
+
+      setTransactions(txns); // ✅ store fetched transactions
     }
-  };
+  } catch (err) {
+    console.error('Failed to fetch user or transactions:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
-  useEffect(() => {
-    fetchUser();
-  }, []);
-  
-
-  // Refresh control state and handler
-  const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchUser(); // ⬅️ actually refresh user data
+    await fetchUser();
     setRefreshing(false);
   };
-
-  const sampleTransactions = [
-    {
-      title: 'Fare',
-      body: 'Successfully paid bus fare',
-      date: '6/27/2025',
-      amount: '-₱50',
-    },
-    {
-      title: 'Top-up',
-      body: 'Added funds to RidePay wallet',
-      date: '6/25/2025',
-      amount: '+₱200',
-    },
-    {
-      title: 'Fare',
-      body: 'Successfully paid jeepney fare',
-      date: '6/24/2025',
-      amount: '-₱20',
-    },
-    {
-      title: 'Fare',
-      body: 'Successfully paid tricycle fare',
-      date: '6/23/2025',
-      amount: '-₱30',
-    },
-    {
-      title: 'Top-up',
-      body: 'Added funds to RidePay wallet',
-      date: '6/22/2025',
-      amount: '+₱150',
-    },
-  ];
 
   return (
     <View style={{ backgroundColor: colors.background }} className="flex-1">
       <ScrollView
         contentContainerStyle={{ padding: 16 }}
         refreshControl={
-          <RefreshControl 
+          <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
             colors={colors.highlight ? [colors.highlight] : undefined}
@@ -103,7 +82,6 @@ export default function HomeScreen() {
       >
         {/* Balance Container */}
         <View className="bg-[#0A2A54] rounded-xl p-4 mb-6 elevation-lg">
-          {/* Top Row: Balance + Eye */}
           <View className="flex-row justify-between items-center mb-4">
             <View className="flex-col">
               <Text className="text-white text-4xl font-bold">
@@ -113,13 +91,11 @@ export default function HomeScreen() {
               </Text>
               <Text className="text-white text-base font-semibold">RidePay Balance</Text>
             </View>
-
             <TouchableOpacity onPress={() => setShowBalance(!showBalance)} className="mb-auto">
               <Ionicons name={showBalance ? 'eye' : 'eye-off'} size={21} color="white" />
             </TouchableOpacity>
           </View>
 
-          {/* Top-up Button */}
           <View className="flex-row mb-2">
             <Text className="text-white text-2xl font-semibold text-center mt-auto">
               {userData
@@ -141,7 +117,7 @@ export default function HomeScreen() {
             style={{ width: '100%', height: 240 }}
             className="rounded-xl"
             initialRegion={{
-              latitude: 14.5995,      // Example: Manila
+              latitude: 14.5995,
               longitude: 120.9842,
               latitudeDelta: 0.01,
               longitudeDelta: 0.01,
@@ -151,7 +127,6 @@ export default function HomeScreen() {
             loadingEnabled
             onPress={() => router.push('/locations/map')}
           >
-            {/* Example Marker */}
             <Marker
               coordinate={{ latitude: 14.5995, longitude: 120.9842 }}
               title="Your Location"
@@ -195,20 +170,37 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Last 5 Transactions */}
-          {sampleTransactions.map((txn, idx) => (
-            <View key={idx}>
-              <TransactionItem
-                title={txn.title}
-                body={txn.body}
-                date={txn.date}
-                amount={txn.amount}
-              />
-              {idx < sampleTransactions.length - 1 && (
-                <View className="border border-gray-200 my-2" />
-              )}
-            </View>
-          ))}
+          {/* Render Transactions */}
+          {transactions.length === 0 ? (
+  <Text style={{ color: colors.text }} className="text-center text-base italic">
+    No recent transactions.
+  </Text>
+) : (
+  transactions
+  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  .slice(0, 5) // optional: get the latest 5
+  .map((txn, idx) => (
+    <View key={txn._id || idx}>
+      <TransactionItem
+        title={txn.type}
+        body={
+          txn.type === 'topup'
+            ? `Added ₱${txn.amount} to wallet`
+            : txn.type === 'bus'
+            ? 'Paid fare for bus'
+            : txn.type === 'card'
+            ? 'Successfully bought card'
+            : 'Transaction'
+        }
+        date={new Date(txn.timestamp).toLocaleString()}
+        amount={`${txn.type === 'topup' ? '+' : '-'}₱${txn.amount}`}
+      />
+      {idx < Math.min(transactions.length, 5) - 1 && (
+        <View className="border border-gray-200 my-2" />
+      )}
+    </View>
+  ))
+)}
         </View>
 
         <View className="mb-32">

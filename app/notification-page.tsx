@@ -1,99 +1,85 @@
-import { useTheme } from '@/context/ThemeContext';
-import { darkColors, lightColors } from '@/theme/colors';
-import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme } from '@/context/ThemeContext';
+import { darkColors, lightColors } from '@/theme/colors';
 import NotificationItem from '../components/NotificationItem';
-
-// Sample notification data array
-const notificationsData = [
-  {
-    id: '1',
-    title: 'Successfully Paid',
-    body: 'You have successfully paid 29 PHP. Thank you for using RidePay.',
-    iconName: 'bus',
-    iconType: 'MaterialCommunityIcons',
-    status: 'Paid',
-    date: '6/27/2025',
-  },
-  {
-    id: '2',
-    title: 'New Discount Promo!',
-    body: 'New discount promo is ongoing. Apply now!',
-    iconName: 'tag-outline',
-    iconType: 'MaterialCommunityIcons',
-    status: 'None',
-    date: '6/20/2025',
-  },
-  {
-    id: '3',
-    title: 'Top-up Successful',
-    body: 'You topped up 100 PHP to your wallet.',
-    iconName: 'wallet-plus',
-    iconType: 'MaterialCommunityIcons',
-    status: 'Top-up',
-    date: '6/15/2025',
-  },
-  {
-    id: '4',
-    title: 'Account Update',
-    body: 'Your account info has been updated.',
-    iconName: 'account-edit',
-    iconType: 'MaterialCommunityIcons',
-    status: 'Updated',
-    date: '6/10/2025',
-  },
-];
+import { getTransactions } from '@/api/fetchUserTransactions'; // make sure this exists
 
 export default function NotificationPage() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = theme === 'dark' ? darkColors : lightColors;
-  const [notifications, setNotifications] = useState(notificationsData);
-  const [searchQuery, setSearchQuery] = useState('');
 
-  // Helper to get icon component based on iconType and iconName
-  const getIconComponent = (iconType: string, iconName: string, color = '#0A2A54') => {
-    switch (iconType) {
-      case 'MaterialCommunityIcons':
-        return <MaterialCommunityIcons name={iconName as any} size={24} color={color} />;
-      case 'FontAwesome5':
-        return <FontAwesome5 name={iconName as any} size={24} color={color} />;
+  const [transactions, setTransactions] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filtered, setFiltered] = useState([]);
+
+  const getIconComponent = (type: string) => {
+    switch (type) {
+      case 'topup':
+        return <MaterialCommunityIcons name="wallet-plus" size={24} color={colors.subtext} />;
+      case 'bus':
+        return <MaterialCommunityIcons name="bus" size={24} color={colors.subtext} />;
+      case 'card':
+        return <MaterialCommunityIcons name="credit-card" size={24} color={colors.subtext} />;
       default:
-        return null;
+        return <MaterialCommunityIcons name="information" size={24} color={colors.subtext} />;
     }
   };
 
-  // Search handler: filter notifications by title or date (case-insensitive)
+  const fetchData = async () => {
+    try {
+      const res = await getTransactions();
+      const sorted = res.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setTransactions(sorted);
+      setFiltered(sorted);
+    } catch (err) {
+      console.error('Failed to fetch transactions:', err);
+    }
+  };
+
   const handleSearch = () => {
-    if (!searchQuery.trim()) {
-      // If search is empty, reset to full list
-      setNotifications(notificationsData);
+    const q = searchQuery.toLowerCase();
+    if (!q.trim()) {
+      setFiltered(transactions);
       return;
     }
 
-    const filtered = notificationsData.filter((notif) => {
-      const q = searchQuery.toLowerCase();
-      return (
-        notif.title.toLowerCase().includes(q) ||
-        notif.date.toLowerCase().includes(q)
-      );
-    });
+    const result = transactions.filter(
+      (t) =>
+        t.type.toLowerCase().includes(q) ||
+        new Date(t.timestamp).toLocaleDateString().includes(q)
+    );
+    setFiltered(result);
+  };
 
-    setNotifications(filtered);
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const getBodyText = (type: string, amount: number) => {
+    switch (type) {
+      case 'topup':
+        return `You added ₱${amount} to your wallet.`;
+      case 'bus':
+        return `You paid ₱${amount} for bus fare.`;
+      case 'card':
+        return `You purchased a card for ₱${amount}.`;
+      default:
+        return `You made a transaction of ₱${amount}.`;
+    }
   };
 
   return (
     <SafeAreaView style={{ backgroundColor: colors.background }} className="flex-1 px-4 pt-4">
-      {/* Header with Back Button */}
+      {/* Header */}
       <View className="flex-row items-center justify-start mb-4 relative">
         <TouchableOpacity onPress={() => router.back()} className="z-10">
           <FontAwesome5 name="arrow-left" size={20} color={colors.subtext} />
         </TouchableOpacity>
-
-        {/* Centered title using absolute position */}
         <Text style={{ color: colors.text }} className="text-2xl font-bold absolute left-1/2 -translate-x-1/2">
           Notifications
         </Text>
@@ -105,9 +91,8 @@ export default function NotificationPage() {
           placeholder="Search notifications..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          className="flex-1 border border-gray-300 rounded-l-full px-4 py-2"
-          returnKeyType="search"
           onSubmitEditing={handleSearch}
+          className="flex-1 border border-gray-300 rounded-l-full px-4 py-2"
           style={{ color: colors.text }}
           placeholderTextColor={colors.placeholder}
         />
@@ -119,25 +104,33 @@ export default function NotificationPage() {
         </TouchableOpacity>
       </View>
 
-      {/* Scrollable List with padding top and bottom */}
+      {/* Notifications List */}
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={{ backgroundColor: colors.background }} className="pt-2 pb-6">
-          {notifications.length === 0 ? (
-            <Text className="text-center text-gray-400 mt-10 text-lg ">
+          {filtered.length === 0 ? (
+            <Text className="text-center text-gray-400 mt-10 text-lg">
               No notifications found...
             </Text>
           ) : (
-            notifications.map((notif) => (
-              <View key={notif.id}  className="my-1">
-                <NotificationItem
-                  title={notif.title}
-                  body={notif.body}
-                  icon={getIconComponent(notif.iconType, notif.iconName, colors.subtext)}
-                  status={notif.status}
-                  date={notif.date}
-                />
-              </View>
-            ))
+            (transactions as Transactions[]).map((txn) => (
+  <View key={txn._id} className="my-1">
+    <NotificationItem
+      title={
+        txn.type === 'topup'
+          ? 'Top-up Successful'
+          : txn.type === 'bus'
+          ? 'Fare Paid'
+          : txn.type === 'card'
+          ? 'Card Purchased'
+          : 'Transaction'
+      }
+      body={getBodyText(txn.type, txn.amount)}
+      icon={getIconComponent(txn.type)}
+      status={txn.type}
+      date={new Date(txn.timestamp).toLocaleDateString()}
+    />
+  </View>
+))
           )}
         </View>
       </ScrollView>
