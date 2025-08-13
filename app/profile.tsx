@@ -3,11 +3,10 @@ import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
 import { Entypo, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Alert, ScrollView, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-
+import axiosInstance from '@/api/axiosIntance'; // ⬅️ Make sure this points to your configured Axios instance
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -17,10 +16,39 @@ export default function ProfilePage() {
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [isFrozen, setIsFrozen] = useState(false);
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
+  const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  // 🔹 Fetch profile from API
+  useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      // ⬅️ If token is saved in AsyncStorage temporarily for API calls
+      const token = await AsyncStorage.getItem('userToken');
+
+      const response = await axiosInstance.get('/passengers/profile', {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+        },
+      });
+
+      setProfile({
+        name: response.data.name,
+        email: response.data.email,
+      });
+    } catch (error) {
+      console.error('Error fetching profile:', error?.response?.data || error.message);
+      Alert.alert('Error', 'Unable to load profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchProfile();
+}, []);
 
   const handleAccountDiscount = () => {
-    const hasDiscount = false; // 🔁 Replace with real logic later
+    const hasDiscount = true; // 🔁 Replace with real logic later
 
     if (!hasDiscount) {
       setShowDiscountModal(true);
@@ -33,27 +61,26 @@ export default function ProfilePage() {
     setShowFreezeConfirm(true); // show confirmation modal
   };
 
- const confirmFreeze = async () => {
-  setIsFrozen(true);
-  setShowFreezeConfirm(false);
+  const confirmFreeze = async () => {
+    setIsFrozen(true);
+    setShowFreezeConfirm(false);
 
-  Alert.alert("Account Frozen", "Your account has been frozen. Contact support to reactivate.");
+    Alert.alert("Account Frozen", "Your account has been frozen. Contact support to reactivate.");
 
-  // Optional: remove token/profile info
-  await AsyncStorage.removeItem('userToken');
-  await AsyncStorage.removeItem('userProfile');
+    // Optional: remove token/profile info
+    await AsyncStorage.removeItem('userToken');
+    await AsyncStorage.removeItem('userProfile');
 
-  // Redirect to login or splash screen
-  router.replace('/'); // or replace with your actual login route
-};
+    // Redirect to login or splash screen
+    router.replace('/');
+  };
+
   return (
     <View style={{ backgroundColor: colors.background }} className="flex-1 ">
       {/* Back Button */}
       <View className="absolute top-12 left-4 z-10">
         <TouchableOpacity onPress={() => router.back()} className="flex-row items-center space-x-2">
           <FontAwesome5 name="arrow-left" size={20} color={colors.subtext} />
-          
-        
         </TouchableOpacity>
       </View>
 
@@ -71,10 +98,17 @@ export default function ProfilePage() {
               <FontAwesome5 name="user" size={36} color="#ffffff" />
             </View>
           </View>
-         <Text className="text-white text-base mb-1">
-            Name: <Text className="font-bold">helloworld</Text>
-          </Text>
-          <Text className="text-white text-base">Email: mcalon@gmail.com</Text>
+
+          {loading ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <>
+              <Text className="text-white text-base mb-1">
+                Name: <Text className="font-bold">{profile?.name || 'N/A'}</Text>
+              </Text>
+              <Text className="text-white text-base">Email: {profile?.email || 'N/A'}</Text>
+            </>
+          )}
 
           {isFrozen && (
             <Text className="text-red-400 mt-2 text-center font-semibold">Account is Frozen</Text>

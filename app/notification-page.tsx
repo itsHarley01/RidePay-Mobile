@@ -7,12 +7,15 @@ import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
 import NotificationItem from '../components/NotificationItem';
 import { getTransactions } from '@/api/fetchUserTransactions'; // make sure this exists
+import { fetchUserDataByUid } from '@/api/fetchUserDataApi';
+import { getAuthData } from '@/utils/auth';
 
 export default function NotificationPage() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = theme === 'dark' ? darkColors : lightColors;
-
+  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<{ firstName: string, lastName: string, balance: number } | null>(null);
   const [transactions, setTransactions] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filtered, setFiltered] = useState([]);
@@ -29,17 +32,30 @@ export default function NotificationPage() {
         return <MaterialCommunityIcons name="information" size={24} color={colors.subtext} />;
     }
   };
+  const fetchUser = async () => {
+  try {
+    setLoading(true);
+    const { uid } = await getAuthData();
 
-  const fetchData = async () => {
-    try {
-      const res = await getTransactions();
-      const sorted = res.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setTransactions(sorted);
-      setFiltered(sorted);
-    } catch (err) {
-      console.error('Failed to fetch transactions:', err);
+    if (uid) {
+      const user = await fetchUserDataByUid(uid);
+      const txns = await getTransactions({ fromUser: uid }); // ✅ this line
+
+      setUserData({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        balance: user.balance ?? 0,
+      });
+
+      setTransactions(txns); // ✅ store fetched transactions
     }
-  };
+  } catch (err) {
+    console.error('Failed to fetch user or transactions:', err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleSearch = () => {
     const q = searchQuery.toLowerCase();
@@ -56,9 +72,7 @@ export default function NotificationPage() {
     setFiltered(result);
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  
 
   const getBodyText = (type: string, amount: number) => {
     switch (type) {

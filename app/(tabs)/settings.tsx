@@ -13,7 +13,7 @@ export default function SettingsTab() {
   const colors = theme === 'dark' ? darkColors : lightColors;
 
   const handlePress = (path: string) => {
-    router.push(path);
+    router.push(path as any);
   };
 
   return (
