@@ -1,4 +1,3 @@
-// File: app/_layout.tsx
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';

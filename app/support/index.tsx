@@ -10,7 +10,7 @@ export default function SupportPage() {
   const colors = theme === 'dark' ? darkColors : lightColors;
 
   const handleContactSupport = () => {
-    const email = 'support@example.com';
+    const email = 'RidePayMobile@gmail.com';
     const subject = encodeURIComponent('Need Help with the App');
     const body = encodeURIComponent('Hello Support Team,\n\nI need assistance with...');
     const mailtoUrl = `mailto:${email}?subject=${subject}&body=${body}`;
@@ -72,7 +72,7 @@ export default function SupportPage() {
             style={{ color: colors.text }}
             className="text-sm text-center"
           >
-            Email: support@example.com
+            Email: RidePayMobile@gmail.com
           </Text>
         </View>
       </ScrollView>

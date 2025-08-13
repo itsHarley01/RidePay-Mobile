@@ -1,9 +1,11 @@
 import TransactionItem from '@/components/TransactionItem';
 import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
+import { getAuthData } from '@/utils/auth';
+import { getTransactions } from '@/api/fetchUserTransactions';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -14,84 +16,59 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Sample transactions data
-const transactionsData = [
-  {
-    id: '1',
-    refId: 'samplerefid1',
-    title: 'Fare Payment',
-    body: 'Paid fare to route 04L',
-    date: '6/27/2025',
-    time: '9:00 am',
-    amount: '-₱29',
-  },
-  {
-    id: '2',
-     refId: 'samplerefid2',
-    title: 'Wallet Top-up',
-    body: 'Added ₱100 to wallet',
-    date: '6/25/2025',
-    time: '9:15 pm',
-    amount: '+₱100',
-  },
-  {
-    id: '3',
-     refId: 'samplerefid3',
-    title: 'Promo Discount',
-    body: 'Discount applied on 06H route',
-    date: '6/22/2025',
-    time: '10:01 am',
-    amount: '-₱10',
-  },
-  {
-    id: '4',
-     refId: 'samplerefid4',
-    title: 'Fare Payment',
-    body: 'Paid fare to route 12L',
-    date: '6/20/2025',
-    time: '7:30 am',
-    amount: '-₱25',
-  },
-];
-
 export default function TransactionHistoryPage() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = theme === 'dark' ? darkColors : lightColors;
-  const [transactions, setTransactions] = useState(transactionsData);
+
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTxn, setSelectedTxn] = useState(null);
-  const [showModal, setShowModal] = useState(false);
 
+  const fetchUserTransactions = async () => {
+    try {
+      const { uid } = await getAuthData();
+      if (!uid) return;
 
-  // Search filter
+      const txns = await getTransactions({ fromUser: uid });
+      setTransactions(txns);
+      setAllTransactions(txns);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    }
+  };
+
   const handleSearch = () => {
     if (!searchQuery.trim()) {
-      setTransactions(transactionsData);
+      setTransactions(allTransactions);
       return;
     }
 
     const q = searchQuery.toLowerCase();
-    const filtered = transactionsData.filter(
+    const filtered = allTransactions.filter(
       (txn) =>
-        txn.title.toLowerCase().includes(q) ||
-        txn.body.toLowerCase().includes(q) ||
-        txn.date.toLowerCase().includes(q)
+        txn.type.toLowerCase().includes(q) ||
+        String(txn.amount).toLowerCase().includes(q) ||
+        new Date(txn.timestamp).toLocaleDateString().includes(q)
     );
 
     setTransactions(filtered);
   };
 
+  useEffect(() => {
+    fetchUserTransactions();
+  }, []);
+
   return (
-    <SafeAreaView style={{backgroundColor: colors.background }} className=" flex-1 px-4 pt-4">
+    <SafeAreaView style={{ backgroundColor: colors.background }} className="flex-1 px-4 pt-4">
       {/* Header */}
       <View className="flex-row items-center justify-start mb-4 relative">
         <TouchableOpacity onPress={() => router.back()} className="z-10">
           <FontAwesome5 name="arrow-left" size={20} color={colors.highlight} />
         </TouchableOpacity>
-          <Text style={{ color: colors.text }} className="text-2xl font-bold absolute left-1/2 -translate-x-1/2">
-            Transactions
-          </Text>
+        <Text style={{ color: colors.text }} className="text-2xl font-bold absolute left-1/2 -translate-x-1/2">
+          Transactions
+        </Text>
       </View>
 
       {/* Search Bar */}
@@ -122,36 +99,54 @@ export default function TransactionHistoryPage() {
               No transactions found...
             </Text>
           ) : (
-            transactions.map((txn) => (
+            transactions.map((txn, idx) => (
               <Pressable
-                key={txn.id}
-                onPress={() => router.push({
-                  pathname: '/receipt',
-                  params: {
-                    id: txn.id,
-                    refId: txn.refId,
-                    title: txn.title,
-                    body: txn.body,
-                    date: txn.date,
-                    time: txn.time,
-                    amount: txn.amount,
-                  },
-                })}
+                key={idx}
+                onPress={() =>
+                  router.push({
+                    pathname: '/receipt',
+                    params: {
+                      id: txn.id || txn._id,
+                      refId: txn.refId || txn.referenceId || '',
+                      title: txn.type === 'topup' ? 'Wallet Top-up' : txn.type === 'bus' ? 'Fare Payment' : 'Card Payment',
+                      body:
+                        txn.type === 'topup'
+                          ? `Added ₱${txn.amount} to wallet`
+                          : txn.type === 'bus'
+                          ? 'Paid fare'
+                          : 'Paid for card',
+                      date: new Date(txn.timestamp).toLocaleDateString(),
+                      time: new Date(txn.timestamp).toLocaleTimeString(),
+                      amount: `${txn.type === 'topup' ? '+' : '-'}₱${txn.amount}`,
+                    },
+                  })
+                }
                 android_ripple={{ color: '#ccc' }}
                 className="mb-4 border-b border-gray-300 pb-2"
               >
                 <TransactionItem
-                  title={txn.title}
-                  body={txn.body}
-                  date={txn.date}
-                  amount={txn.amount}
+                  title={
+                    txn.type === 'topup'
+                      ? 'Wallet Top-up'
+                      : txn.type === 'bus'
+                      ? 'Fare Payment'
+                      : 'Card Payment'
+                  }
+                  body={
+                    txn.type === 'topup'
+                      ? `Added ₱${txn.amount} to wallet`
+                      : txn.type === 'bus'
+                      ? 'Paid fare'
+                      : 'Paid for card'
+                  }
+                  date={new Date(txn.timestamp).toLocaleDateString()}
+                  amount={`${txn.type === 'topup' ? '+' : '-'}₱${txn.amount}`}
                 />
               </Pressable>
             ))
           )}
         </View>
       </ScrollView>
-
     </SafeAreaView>
   );
 }

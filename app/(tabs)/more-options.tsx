@@ -24,7 +24,7 @@ export default function ExplorePage() {
       router.push('/discount');
     }
   };
-
+  
 
   return (
     <ScrollView style={{ backgroundColor: colors.background }} className="flex-1 px-4 pt-10 pb-32">
@@ -40,7 +40,7 @@ export default function ExplorePage() {
           { icon: <Ionicons name="chatbubble-ellipses" size={28} color={colors.text} />, label: "Support", action: () => router.push('/support')},
           { icon: <MaterialIcons name="history" size={28} color={colors.text} />, label: "History", action: () => router.push('/transaction-history') },
           { icon: <MaterialIcons name="report-problem" size={28} color={colors.text} />, label: "Report", action:  () => router.push('/report')},
-          { icon: <Ionicons name="thumbs-up" size={28} color={colors.text} />, label: "Feedback" },
+          { icon: <Ionicons name="thumbs-up" size={28} color={colors.text} />, label: "Feedback", action: () => router.push('/feedback') },
         ].map((item, idx) => (
           <TouchableOpacity
             key={idx}

@@ -173,19 +173,25 @@ export default function RegisterPage() {
             {step === 2 && (
               <>
                 <FloatingLabelInput
-                  label="Email"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoComplete="email"
-                />
+  label="Email"
+  value={email}
+  onChangeText={setEmail}
+  keyboardType="email-address"
+  autoComplete="email"
+/>
+<Text className="text-xs text-red-500 mt-1 ml-1">
+  * Enter a valid email format (e.g., example@mail.com)
+</Text>
                 <FloatingLabelInput
-                  label="Phone Number"
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  keyboardType="phone-pad"
-                  autoComplete="tel"
-                />
+  label="Phone Number"
+  value={phoneNumber}
+  onChangeText={setPhoneNumber}
+  keyboardType="phone-pad"
+  autoComplete="tel"
+/>
+<Text className="text-xs text-red-500 mt-1 ml-1">
+  * Must be 10–11 digits (e.g., 09123456789)
+</Text>
                 <View className="flex-row justify-between space-x-3 mt-4">
                   <TouchableOpacity
                     className="flex-1 border border-blue-600 py-3 rounded-full"
@@ -206,18 +212,25 @@ export default function RegisterPage() {
             {step === 3 && (
               <>
                 <FloatingLabelInput
-                  label="Password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoComplete="new-password"
-                />
-                <FloatingLabelInput
-                  label="Confirm Password"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  secureTextEntry
-                />
+  label="Password"
+  value={password}
+  onChangeText={setPassword}
+  secureTextEntry
+  autoComplete="new-password"
+/>
+<Text className="text-xs text-red-500 mt-1 ml-1">
+  * At least 8 characters (letters, numbers, symbols)
+</Text>
+
+               <FloatingLabelInput
+  label="Confirm Password"
+  value={confirmPassword}
+  onChangeText={setConfirmPassword}
+  secureTextEntry
+/>
+<Text className="text-xs text-red-500 mt-1 ml-1">
+  * Must match the password above
+</Text>
                 <View className="flex-row justify-between space-x-3 mt-4">
                   <TouchableOpacity
                     className="flex-1 border border-blue-600 py-3 rounded-full"

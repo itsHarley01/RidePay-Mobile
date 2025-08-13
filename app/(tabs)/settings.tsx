@@ -1,4 +1,5 @@
 // File: /app/(tabs)/settings.tsx
+import Footer from '@/components/Footer';
 import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,13 +13,13 @@ export default function SettingsTab() {
   const colors = theme === 'dark' ? darkColors : lightColors;
 
   const handlePress = (path: string) => {
-    router.push(path);
+    router.push(path as any);
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView
-        className='px-6'
+        className='px-6 pb-10'
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
@@ -101,6 +102,10 @@ export default function SettingsTab() {
             </TouchableOpacity>
           ))}
         </View>
+
+          <View className= 'mt-auto h-64 pt-20'>
+            <Footer/>
+          </View>
       </ScrollView>
     </SafeAreaView>
   );

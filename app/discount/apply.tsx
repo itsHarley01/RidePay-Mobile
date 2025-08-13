@@ -15,9 +15,11 @@ import AnimatedCircularProgress from '@/components/AnimatedCircularProgress';
 
 const stepsTotal = 5;
 
+
 export default function DiscountApply() {
   const [step, setStep] = useState(1);
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
 
   const goBack = () => {
     if (step === 1) router.back();
@@ -81,21 +83,62 @@ export default function DiscountApply() {
       <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
         <View className="space-y-6">
           {step === 1 && (
-            <View className="items-center">
-              <Text className="text-2xl font-bold text-[#0c2340] mb-2 text-center">Privacy & Terms</Text>
-              <Text className="text-center text-gray-700 mb-6 px-4">
-                By continuing, you agree to our Terms of Service, Privacy Policy, and consent to data
-                processing.
-              </Text>
-              <TouchableOpacity
-                onPress={goNext}
-                className="bg-[#0c2340] py-3 px-6 rounded-full w-full max-w-xs items-center"
-              >
-                <Text className="text-white font-semibold">Agree & Continue</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+  <View className="items-center flex-1">
+    <Text className="text-2xl font-bold text-[#0c2340] mb-4 text-center">
+      Privacy & Terms
+    </Text>
 
+    <ScrollView
+      style={{
+        maxHeight: 300,
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 8,
+        padding: 12,
+        backgroundColor: "#f9f9f9",
+        marginBottom: 16,
+      }}
+      onScroll={(e) => {
+        const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+        const isScrolledToBottom =
+          contentOffset.y + layoutMeasurement.height >= contentSize.height - 10;
+        if (isScrolledToBottom) setHasScrolledToBottom(true);
+      }}
+      scrollEventThrottle={16}
+    >
+      <Text className="text-gray-700 text-sm leading-relaxed">
+        By using this application, you agree to the collection, processing,
+        and storage of your personal information for the purpose of verifying
+        your eligibility for transportation fare discounts.  
+        {"\n\n"}
+        We may collect details such as your name, email address, date of birth,
+        contact information, and identification documents. This information will
+        be used solely for validation purposes and will not be shared with third
+        parties, except where required by law.  
+        {"\n\n"}
+        All data will be stored securely and processed in accordance with
+        applicable privacy laws. You may request the deletion of your data by
+        contacting our support team. However, deleting your data will revoke any
+        active discount privileges.  
+        {"\n\n"}
+        By continuing, you confirm that you have read, understood, and agreed to
+        our Terms of Service and Privacy Policy.
+      </Text>
+    </ScrollView>
+
+    <TouchableOpacity
+      disabled={!hasScrolledToBottom}
+      onPress={goNext}
+      className={`py-3 px-6 rounded-full w-full max-w-xs items-center ${
+        hasScrolledToBottom ? "bg-[#0c2340]" : "bg-gray-400"
+      }`}
+    >
+      <Text className="text-white font-semibold">
+        {hasScrolledToBottom ? "Agree & Continue" : "Scroll to Read All"}
+      </Text>
+    </TouchableOpacity>
+  </View>
+)}
           {step === 2 && (
             <View className="items-center">
               <Text className="text-2xl font-bold text-[#0c2340] mb-4 text-center">Select Discount Type</Text>
