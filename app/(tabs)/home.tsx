@@ -62,6 +62,7 @@ export default function HomeScreen() {
   }
 };
 
+
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchUser();

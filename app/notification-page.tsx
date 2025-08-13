@@ -76,7 +76,7 @@ export default function NotificationPage() {
 
   const getBodyText = (type: string, amount: number) => {
     switch (type) {
-      case 'topup':
+      case 'topup': 
         return `You added ₱${amount} to your wallet.`;
       case 'bus':
         return `You paid ₱${amount} for bus fare.`;
