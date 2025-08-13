@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://10.252.69.223:3000/ridepay', 
+  baseURL: 'https://api-ridepay-nodebackend.onrender.com/ridepay', 
   timeout: 10000,
 });
 
