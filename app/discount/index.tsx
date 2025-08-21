@@ -6,12 +6,15 @@ import { router } from 'expo-router';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 export default function DiscountIndex() {
-  const hasDiscount = false; // Set true to simulate existing discount
+  const hasDiscount = false; // Simulate already applied or active discount
   const { theme } = useTheme();
   const colors = theme === 'dark' ? darkColors : lightColors;
 
   return (
-    <View style={{ backgroundColor: colors.background }} className="flex-1  px-4 pt-12 pb-6">
+    <View
+      style={{ backgroundColor: colors.background }}
+      className="flex-1 px-4 pt-12 pb-6"
+    >
       {/* Back Button */}
       <TouchableOpacity
         onPress={() => router.back()}
@@ -21,19 +24,47 @@ export default function DiscountIndex() {
       </TouchableOpacity>
 
       <View className="mt-20">
-        <Text style={{ color: colors.subtext }} className="text-3xl font-bold  text-center mb-8">
+        <Text
+          style={{ color: colors.subtext }}
+          className="text-3xl font-bold text-center mb-8"
+        >
           Account Discount
         </Text>
 
         {hasDiscount ? (
           <View className="bg-[#0c2340] p-6 rounded-xl shadow-md">
-            <Text style={{ color: colors.text }} className=" text-lg mb-2">Discount Type: <Text className="font-bold">Student</Text></Text>
-            <Text style={{ color: colors.text }} className=" text-lg mb-2">Percentage: <Text className="font-bold">20%</Text></Text>
-            <Text style={{ color: colors.text }} className=" text-lg">Expires: <Text className="font-bold">2025-05-01</Text></Text>
+            <Text style={{ color: colors.text }} className="text-lg font-bold mb-4 text-white">
+              You already have an active discount!
+            </Text>
+
+            <Text style={{ color: colors.text }} className="text-lg mb-2">
+              Discount Type:{' '}
+              <Text className="font-bold text-white">Student</Text>
+            </Text>
+            <Text style={{ color: colors.text }} className="text-lg mb-2">
+              Percentage:{' '}
+              <Text className="font-bold text-white">20%</Text>
+            </Text>
+            <Text style={{ color: colors.text }} className="text-lg">
+              Expires:{' '}
+              <Text className="font-bold text-white">2025-05-01</Text>
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => router.replace('/(tabs)/home')}
+              className="bg-white mt-6 px-6 py-3 rounded-full shadow-md"
+            >
+              <Text className="text-[#0c2340] font-semibold text-base">
+                Back to Home
+              </Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View className="items-center mt-10">
-            <Text style={{ color: colors.placeholder }}className=" text-base mb-6 text-center">
+            <Text
+              style={{ color: colors.placeholder }}
+              className="text-base mb-6 text-center"
+            >
               You don't currently have an active discount.
             </Text>
             <TouchableOpacity

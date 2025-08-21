@@ -98,53 +98,54 @@ export default function TransactionHistoryPage() {
             <Text style={{ color: colors.text }} className="text-center mt-10 text-lg">
               No transactions found...
             </Text>
-          ) : (
-            transactions.map((txn, idx) => (
-              <Pressable
-                key={idx}
-                onPress={() =>
-                  router.push({
-                    pathname: '/receipt',
-                    params: {
-                      id: txn.id || txn._id,
-                      refId: txn.refId || txn.referenceId || '',
-                      title: txn.type === 'topup' ? 'Wallet Top-up' : txn.type === 'bus' ? 'Fare Payment' : 'Card Payment',
-                      body:
-                        txn.type === 'topup'
-                          ? `Added ₱${txn.amount} to wallet`
-                          : txn.type === 'bus'
-                          ? 'Paid fare'
-                          : 'Paid for card',
-                      date: new Date(txn.timestamp).toLocaleDateString(),
-                      time: new Date(txn.timestamp).toLocaleTimeString(),
-                      amount: `${txn.type === 'topup' ? '+' : '-'}₱${txn.amount}`,
-                    },
-                  })
-                }
-                android_ripple={{ color: '#ccc' }}
-                className="mb-4 border-b border-gray-300 pb-2"
-              >
-                <TransactionItem
-                  title={
-                    txn.type === 'topup'
-                      ? 'Wallet Top-up'
-                      : txn.type === 'bus'
-                      ? 'Fare Payment'
-                      : 'Card Payment'
-                  }
-                  body={
-                    txn.type === 'topup'
-                      ? `Added ₱${txn.amount} to wallet`
-                      : txn.type === 'bus'
-                      ? 'Paid fare'
-                      : 'Paid for card'
-                  }
-                  date={new Date(txn.timestamp).toLocaleDateString()}
-                  amount={`${txn.type === 'topup' ? '+' : '-'}₱${txn.amount}`}
-                />
-              </Pressable>
-            ))
-          )}
+) : (
+  transactions.map((txn, idx) => {
+    const title =
+      txn.type === 'topup'
+        ? 'Wallet Top-up'
+        : txn.type === 'bus'
+        ? 'Fare Payment'
+        : 'Card Payment';
+
+    const body =
+      txn.type === 'topup'
+        ? `Added ₱${txn.amount} to wallet`
+        : txn.type === 'bus'
+        ? 'Paid fare'
+        : 'Paid for card';
+
+    const amount = `${txn.type === 'topup' ? '+' : '-'}₱${txn.amount}`;
+
+    return (
+      <Pressable
+        key={txn.id || txn._id || `${txn.refId || txn.referenceId}-${idx}`}
+        onPress={() =>
+          router.push({
+            pathname: '/receipt',
+            params: {
+              id: txn.id || txn._id,
+              refId: txn.refId || txn.referenceId || '',
+              title,
+              body,
+              date: new Date(txn.timestamp).toLocaleDateString(),
+              time: new Date(txn.timestamp).toLocaleTimeString(),
+              amount,
+            },
+          })
+        }
+        android_ripple={{ color: '#ccc' }}
+        className="mb-4 border-b border-gray-300 pb-2"
+      >
+        <TransactionItem
+          title={title}
+          body={body}
+          date={new Date(txn.timestamp).toLocaleDateString()}
+          amount={amount}
+        />
+      </Pressable>
+    );
+  })
+)}
         </View>
       </ScrollView>
     </SafeAreaView>

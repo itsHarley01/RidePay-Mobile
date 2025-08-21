@@ -23,19 +23,27 @@ export default function ProfilePage() {
   useEffect(() => {
   const fetchProfile = async () => {
     try {
-      // ⬅️ If token is saved in AsyncStorage temporarily for API calls
       const token = await AsyncStorage.getItem('userToken');
+      if (!token) {
+        Alert.alert("Error", "No token found, please log in again.");
+        setLoading(false);
+        return;
+      }
 
       const response = await axiosInstance.get('/passengers/profile', {
         headers: {
-          Authorization: token ? `Bearer ${token}` : undefined,
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
         },
       });
 
+      console.log("Profile API Response:", response.data);
+
       setProfile({
-        name: response.data.name,
-        email: response.data.email,
+        name: response.data.name || response.data.data?.name || 'N/A',
+        email: response.data.email || response.data.data?.email || 'N/A',
       });
+
     } catch (error) {
       console.error('Error fetching profile:', error?.response?.data || error.message);
       Alert.alert('Error', 'Unable to load profile. Please try again.');
@@ -46,6 +54,7 @@ export default function ProfilePage() {
 
   fetchProfile();
 }, []);
+
 
   const handleAccountDiscount = () => {
     const hasDiscount = true; // 🔁 Replace with real logic later

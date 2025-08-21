@@ -1,21 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  RefreshControl
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
 import NotificationItem from '../components/NotificationItem';
-import { getTransactions } from '@/api/fetchUserTransactions'; // make sure this exists
+import { getTransactions } from '@/api/fetchUserTransactions';
 import { fetchUserDataByUid } from '@/api/fetchUserDataApi';
 import { getAuthData } from '@/utils/auth';
+
 
 export default function NotificationPage() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = theme === 'dark' ? darkColors : lightColors;
+
   const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState<{ firstName: string, lastName: string, balance: number } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [userData, setUserData] = useState<{ firstName: string; lastName: string; balance: number } | null>(null);
   const [transactions, setTransactions] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filtered, setFiltered] = useState([]);
@@ -32,30 +42,36 @@ export default function NotificationPage() {
         return <MaterialCommunityIcons name="information" size={24} color={colors.subtext} />;
     }
   };
+
   const fetchUser = async () => {
-  try {
-    setLoading(true);
-    const { uid } = await getAuthData();
+    try {
+      setLoading(true);
+      const { uid } = await getAuthData();
 
-    if (uid) {
-      const user = await fetchUserDataByUid(uid);
-      const txns = await getTransactions({ fromUser: uid }); // ✅ this line
+      if (uid) {
+        const user = await fetchUserDataByUid(uid);
+        const txns = await getTransactions({ fromUser: uid });
 
-      setUserData({
-        firstName: user.firstName,
-        lastName: user.lastName,
-        balance: user.balance ?? 0,
-      });
+        setUserData({
+          firstName: user.firstName,
+          lastName: user.lastName,
+          balance: user.balance ?? 0,
+        });
 
-      setTransactions(txns); // ✅ store fetched transactions
+        setTransactions(txns);
+        setFiltered(txns);
+      }
+    } catch (err) {
+      console.error('Failed to fetch user or transactions:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-  } catch (err) {
-    console.error('Failed to fetch user or transactions:', err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
+  useEffect(() => {
+    fetchUser();
+  }, []);
 
   const handleSearch = () => {
     const q = searchQuery.toLowerCase();
@@ -72,11 +88,14 @@ export default function NotificationPage() {
     setFiltered(result);
   };
 
-  
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchUser();
+  };
 
   const getBodyText = (type: string, amount: number) => {
     switch (type) {
-      case 'topup': 
+      case 'topup':
         return `You added ₱${amount} to your wallet.`;
       case 'bus':
         return `You paid ₱${amount} for bus fare.`;
@@ -119,32 +138,42 @@ export default function NotificationPage() {
       </View>
 
       {/* Notifications List */}
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.text]} />
+        }
+      >
         <View style={{ backgroundColor: colors.background }} className="pt-2 pb-6">
           {filtered.length === 0 ? (
             <Text className="text-center text-gray-400 mt-10 text-lg">
               No notifications found...
             </Text>
-          ) : (
-            (transactions as Transactions[]).map((txn) => (
-  <View key={txn._id} className="my-1">
-    <NotificationItem
-      title={
-        txn.type === 'topup'
-          ? 'Top-up Successful'
-          : txn.type === 'bus'
-          ? 'Fare Paid'
-          : txn.type === 'card'
-          ? 'Card Purchased'
-          : 'Transaction'
-      }
-      body={getBodyText(txn.type, txn.amount)}
-      icon={getIconComponent(txn.type)}
-      status={txn.type}
-      date={new Date(txn.timestamp).toLocaleDateString()}
-    />
-  </View>
-))
+) : (
+  filtered.map((txn: any, index: number) => (
+    <View
+      key={txn._id ? txn._id : `${txn.type}-${txn.timestamp}-${index}`}
+      className="my-1"
+    >
+      <NotificationItem
+        title={
+          txn.type === 'topup'
+            ? 'Top-up Successful'
+            : txn.type === 'bus'
+            ? 'Fare Paid'
+            : txn.type === 'card'
+            ? 'Card Purchased'
+            : 'Transaction'
+        }
+        body={getBodyText(txn.type, txn.amount)}
+        icon={getIconComponent(txn.type)}
+        status={txn.type}
+        date={new Date(txn.timestamp).toLocaleDateString()}
+      />
+    </View>
+  ))
+
+
           )}
         </View>
       </ScrollView>
