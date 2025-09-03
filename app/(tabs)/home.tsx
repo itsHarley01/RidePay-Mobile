@@ -1,5 +1,6 @@
 import { fetchUserDataByUid } from '@/api/fetchUserDataApi';
 import { getTransactions } from '@/api/fetchUserTransactions';
+import { getPromos, Promo } from '@/api/promoApi';
 import Footer from '@/components/Footer';
 import TransactionItem from '@/components/TransactionItem';
 import { useTheme } from '@/context/ThemeContext';
@@ -38,6 +39,10 @@ export default function HomeScreen() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [banners, setBanners] = useState<string[]>([]);
+
+  
+
   const fetchUser = async () => {
   try {
     setLoading(true);
@@ -62,10 +67,51 @@ export default function HomeScreen() {
   }
 };
 
+const fetchPromos = async () => {
+    try {
+      const promos: Promo[] = await getPromos();
+      // extract only promos with valid photo
+      const photos = promos
+        .map((promo) => promo.photo)
+        .filter((photo): photo is string => !!photo);
+      setBanners(photos);
+    } catch (err) {
+      console.error('Failed to fetch promos:', err);
+    }
+  };
+
+
+
+useEffect(() => {
+  // Initial fetch
+  fetchUser();
+  fetchPromos();
+  const interval = setInterval(async () => {
+    try {
+      const { uid } = await getAuthData();
+      if (uid) {
+        const txns = await getTransactions({ fromUser: uid });
+        setTransactions(txns);
+        const user = await fetchUserDataByUid(uid);
+        setUserData({
+          firstName: user.firstName,
+          lastName: user.lastName,
+          balance: user.balance ?? 0,
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching latest transactions:', err);
+    }
+  }, 10000); // 10 seconds interval, adjust as needed
+
+  // Cleanup interval on unmount
+  return () => clearInterval(interval);
+}, []);
+
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchUser();
+    await Promise.all([fetchUser(), fetchPromos()]); // ✅ refresh user + promos together
     setRefreshing(false);
   };
 
@@ -136,27 +182,30 @@ export default function HomeScreen() {
           </MapView>
         </View>
 
-        {/* Carousel Section */}
-        <View className="mb-6">
-          <Carousel
-            loop
-            width={width - 32}
-            height={120}
-            autoPlay
-            autoPlayInterval={3000}
-            data={banners}
-            scrollAnimationDuration={1000}
-            renderItem={({ item }) => (
-              <View className="rounded-xl overflow-hidden w-full h-full">
-                <Image
-                  source={item}
-                  resizeMode="cover"
-                  className="w-full h-full"
-                />
-              </View>
-            )}
+        
+      {/* ✅ Correct */}
+{banners.length > 0 && (
+  <View className="mb-6">
+    <Carousel
+      loop
+      width={width - 32}
+      height={120}
+      autoPlay
+      autoPlayInterval={3000}
+      data={banners}
+      scrollAnimationDuration={1000}
+      renderItem={({ item }) => (
+        <View className="rounded-xl overflow-hidden w-full h-full">
+          <Image
+            source={typeof item === 'string' ? { uri: item } : item}
+            resizeMode="cover"
+            className="w-full h-full"
           />
         </View>
+      )}
+    />
+  </View>
+)}
 
         {/* Transactions Section */}
         <View style={{ backgroundColor: colors.secondaryBackground }} className="p-4 elevation-md shadow-sm mx-5 rounded-lg mb-20">

@@ -26,9 +26,17 @@ export default function NotificationPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userData, setUserData] = useState<{ firstName: string; lastName: string; balance: number } | null>(null);
-  const [transactions, setTransactions] = useState([]);
+  type Transaction = {
+    _id?: string;
+    type: string;
+    amount: number;
+    timestamp: string | number | Date;
+    // add other fields if needed
+  };
+
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filtered, setFiltered] = useState([]);
+  const [filtered, setFiltered] = useState<Transaction[]>([]);
 
   const getIconComponent = (type: string) => {
     switch (type) {

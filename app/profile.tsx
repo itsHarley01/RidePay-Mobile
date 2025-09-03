@@ -1,12 +1,20 @@
+import { fetchUserDataByUid } from '@/api/userApi';
+import { getAuthData } from '@/utils/auth';
 import ModalMessage from '@/components/DiscountModal';
 import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
 import { Entypo, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
-import { Alert, ScrollView, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axiosInstance from '@/api/axiosIntance'; // ⬅️ Make sure this points to your configured Axios instance
+import React, { useEffect, useState, useCallback } from 'react';
+import { 
+  Alert, 
+  ScrollView, 
+  Text, 
+  TouchableOpacity, 
+  View, 
+  ActivityIndicator, 
+  RefreshControl 
+} from 'react-native';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -16,49 +24,52 @@ export default function ProfilePage() {
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [isFrozen, setIsFrozen] = useState(false);
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
-  const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
+
+  const [profile, setProfile] = useState<{ firstName: string; lastName: string; email: string; discount: boolean} | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // 🔹 Fetch profile from API
-  useEffect(() => {
-  const fetchProfile = async () => {
-    try {
-      const token = await AsyncStorage.getItem('userToken');
-      if (!token) {
-        Alert.alert("Error", "No token found, please log in again.");
-        setLoading(false);
-        return;
-      }
+  // 🔄 Fetch profile function (reusable)
+  // For manual refresh (show spinner)
+const loadProfile = useCallback(async (manual = false) => {
+  try {
+    if (manual) setRefreshing(true);
 
-      const response = await axiosInstance.get('/passengers/profile', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      });
-
-      console.log("Profile API Response:", response.data);
-
-      setProfile({
-        name: response.data.name || response.data.data?.name || 'N/A',
-        email: response.data.email || response.data.data?.email || 'N/A',
-      });
-
-    } catch (error) {
-      console.error('Error fetching profile:', error?.response?.data || error.message);
-      Alert.alert('Error', 'Unable to load profile. Please try again.');
-    } finally {
-      setLoading(false);
+    const { uid } = await getAuthData();
+    if (!uid) {
+      Alert.alert("Error", "No UID found. Please log in again.");
+      return;
     }
-  };
 
-  fetchProfile();
+    const data = await fetchUserDataByUid(uid);
+
+    // update profile silently
+    setProfile(data);
+
+  } catch (err: any) {
+    Alert.alert("Error", err.error || "Failed to fetch user profile.");
+  } finally {
+    if (manual) setRefreshing(false);
+  }
 }, []);
 
 
-  const handleAccountDiscount = () => {
-    const hasDiscount = true; // 🔁 Replace with real logic later
+  // 📌 Initial load
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
+  // ⏱️ Auto refresh every 10 seconds (adjust as needed)
+  useEffect(() => {
+  const interval = setInterval(() => {
+    loadProfile(false); // manual = false => silent refresh
+  }, 2000);
+
+  return () => clearInterval(interval);
+}, [loadProfile]);
+
+  const handleAccountDiscount = () => {
+    const hasDiscount = profile?.discount;
     if (!hasDiscount) {
       setShowDiscountModal(true);
     } else {
@@ -67,21 +78,13 @@ export default function ProfilePage() {
   };
 
   const handleFreezeAccount = () => {
-    setShowFreezeConfirm(true); // show confirmation modal
+    setShowFreezeConfirm(true);
   };
 
-  const confirmFreeze = async () => {
+  const confirmFreeze = () => {
     setIsFrozen(true);
     setShowFreezeConfirm(false);
-
     Alert.alert("Account Frozen", "Your account has been frozen. Contact support to reactivate.");
-
-    // Optional: remove token/profile info
-    await AsyncStorage.removeItem('userToken');
-    await AsyncStorage.removeItem('userProfile');
-
-    // Redirect to login or splash screen
-    router.replace('/');
   };
 
   return (
@@ -95,29 +98,30 @@ export default function ProfilePage() {
 
       {/* Scrollable Content */}
       <ScrollView
-        contentContainerStyle={{ paddingTop: 80, paddingHorizontal: 16, paddingBottom: 80 }}
-        className="flex-1"
-      >
+  refreshControl={
+    <RefreshControl refreshing={refreshing} onRefresh={() => loadProfile(true)} />
+  }
+>
+
         <Text style={{ color: colors.subtext }} className="text-center text-2xl font-bold mb-3">Account</Text>
 
-        {/* Profile Card */}
         <View className="bg-[#0c2340] rounded-lg p-4 mb-6 shadow-md">
           <View className="items-center mb-4">
             <View className="w-20 h-20 rounded-full bg-gray-300 justify-center items-center">
               <FontAwesome5 name="user" size={36} color="#ffffff" />
             </View>
           </View>
-
-          {loading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <>
-              <Text className="text-white text-base mb-1">
-                Name: <Text className="font-bold">{profile?.name || 'N/A'}</Text>
-              </Text>
-              <Text className="text-white text-base">Email: {profile?.email || 'N/A'}</Text>
-            </>
-          )}
+          
+         {refreshing ? (
+  <ActivityIndicator color="#fff" size="small" />
+) : (
+  <>
+    <Text className="text-white text-base mb-1">
+      Name: <Text className="font-bold">{profile?.firstName} {profile?.lastName}</Text>
+    </Text>
+    <Text className="text-white text-base">Email: {profile?.email}</Text>
+  </>
+)}
 
           {isFrozen && (
             <Text className="text-red-400 mt-2 text-center font-semibold">Account is Frozen</Text>

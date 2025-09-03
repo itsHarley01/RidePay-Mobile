@@ -16,7 +16,7 @@ export default function ExplorePage() {
   const [showDiscountModal, setShowDiscountModal] = useState(false);
 
   const handleAccountDiscount = () => {
-  const hasDiscount = true;
+  const hasDiscount = false;
 
   if (!hasDiscount) {
     setShowDiscountModal(true);

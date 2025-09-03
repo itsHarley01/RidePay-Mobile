@@ -1,7 +1,10 @@
 // File: app/discount/apply.tsx
 import { FontAwesome5 } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { Picker } from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { fetchUserDataByUid } from '@/api/userApi';
 import React, { useState, useEffect } from 'react';
 import {
   ScrollView,
@@ -11,7 +14,8 @@ import {
   Alert,
   Image,
   TextInput,
-  Linking
+  Linking,
+  ActivityIndicator
 } from 'react-native';
 import AnimatedCircularProgress from '@/components/AnimatedCircularProgress';
 import { getAuthData } from '@/utils/auth';
@@ -31,6 +35,11 @@ export default function DiscountApply() {
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
    const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [showModal, setShowModal] = useState(false)
+  const [loadingUser, setLoadingUser] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+
+  const [showDatePicker, setShowDatePicker] = useState(false);
   
 
 useEffect(() => {
@@ -88,12 +97,27 @@ useEffect(() => {
 
 
   useEffect(() => {
-    const fetchUserId = async () => {
-      const { uid } = await getAuthData();
-      setUserId(uid || null);
-    };
-    fetchUserId();
-  }, []);
+  const loadUserProfile = async () => {
+    if (!userId) return;
+    setLoadingUser(true);
+    try {
+      const data = await fetchUserDataByUid(userId);
+
+      // ✅ Autofill email + contactNumber
+      setApplicationData((prev: any) => ({
+        ...prev,
+        email: data.email || "",
+        contactNumber: data.contactNumber || "",
+      }));
+    } catch (error) {
+      console.error("❌ Failed to fetch user profile", error);
+    } finally {
+      setLoadingUser(false);
+    }
+  };
+
+  loadUserProfile();
+}, [userId]);
 
   const toCamelCase = (str: string) => {
   return str
@@ -218,6 +242,10 @@ const handleSubmit = async () => {
 
 
   const progress = Math.round((step / stepsTotal) * 100);
+
+  function submitApplication(applicationData: any) {
+    throw new Error('Function not implemented.');
+  }
 
   return (
     <View className="flex-1 bg-white px-6 pt-12 pb-6">
@@ -461,7 +489,7 @@ const handleSubmit = async () => {
 )}
 
           {/* Step 3: Application Form */}
-       {step === 3 && (
+      {step === 3 && (
   <View className="items-center w-full px-4">
     <Text className="text-xl font-bold text-[#0c2340] mb-4 text-center">
       Fill Out Your Details
@@ -469,34 +497,127 @@ const handleSubmit = async () => {
 
     {/* Common Fields */}
     <View className="w-full max-w-sm mb-4">
-      {[
-        { placeholder: "First Name", key: "firstName", icon: "user" },
-        { placeholder: "Last Name", key: "lastName", icon: "user" },
-        { placeholder: "Middle Name", key: "middleName", icon: "user" },
-        { placeholder: "Age", key: "age", keyboardType: "numeric", icon: "calendar" },
-        { placeholder: "Gender", key: "gender", icon: "venus-mars" },
-        { placeholder: "Contact Number", key: "contactNumber", keyboardType: "phone-pad", icon: "phone" },
-        { placeholder: "Email", key: "email", keyboardType: "email-address", icon: "envelope" },
-      ].map((field, idx) => (
-        <View
-          key={idx}
-          className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2"
-        >
-          <FontAwesome5
-            name={field.icon as any}
-            size={16}
-            color="#6B7280"
-            style={{ marginRight: 8 }}
-          />
-          <TextInput
-            placeholder={field.placeholder}
-            keyboardType={field.keyboardType || "default"}
-            placeholderTextColor="#9CA3AF"
-            onChangeText={(v) => handleChange(field.key, v)}
-            className="flex-1 text-gray-800 text-sm"
-          />
-        </View>
-      ))}
+      {/* First Name */}
+      <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2">
+        <FontAwesome5 name="user" size={16} color="#6B7280" style={{ marginRight: 8 }} />
+        <TextInput
+          placeholder="First Name"
+          placeholderTextColor="#9CA3AF"
+          onChangeText={(v) => handleChange("firstName", v)}
+          className="flex-1 text-gray-800 text-sm"
+        />
+      </View>
+
+      {/* Last Name */}
+      <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2">
+        <FontAwesome5 name="user" size={16} color="#6B7280" style={{ marginRight: 8 }} />
+        <TextInput
+          placeholder="Last Name"
+          placeholderTextColor="#9CA3AF"
+          onChangeText={(v) => handleChange("lastName", v)}
+          className="flex-1 text-gray-800 text-sm"
+        />
+      </View>
+
+      {/* Middle Name */}
+      <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2">
+        <FontAwesome5 name="user" size={16} color="#6B7280" style={{ marginRight: 8 }} />
+        <TextInput
+          placeholder="Middle Name"
+          placeholderTextColor="#9CA3AF"
+          onChangeText={(v) => handleChange("middleName", v)}
+          className="flex-1 text-gray-800 text-sm"
+        />
+      </View>
+
+{/* Birthdate Picker */}
+<TouchableOpacity
+  onPress={() => setShowDatePicker(true)}
+  className="flex-row items-center bg-gray-50 px-3 py-3 rounded-xl shadow-sm mb-2"
+>
+  <FontAwesome5 name="calendar" size={16} color="#6B7280" style={{ marginRight: 8 }} />
+  <Text className="flex-1 text-gray-800 text-sm">
+    {applicationData.birthdate
+      ? new Date(applicationData.birthdate).toLocaleDateString()
+      : "Select Birthdate"}
+  </Text>
+</TouchableOpacity>
+
+{showDatePicker && (
+  <DateTimePicker
+    value={applicationData.birthdate ? new Date(applicationData.birthdate) : new Date()}
+    mode="date"
+    display="default"
+    onChange={(event: any, selectedDate?: Date) => {
+      setShowDatePicker(false);
+      if (selectedDate) {
+        // Format birthdate as YYYY-MM-DD
+        const formatted = selectedDate.toISOString().split("T")[0];
+        handleChange("birthdate", formatted);
+
+        // Auto-calc age
+        const today = new Date();
+        let age = today.getFullYear() - selectedDate.getFullYear();
+        const m = today.getMonth() - selectedDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < selectedDate.getDate())) {
+          age--;
+        }
+        handleChange("age", age.toString());
+      }
+    }}
+  />
+)}
+
+      {/* Auto Age Display */}
+      <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2">
+        <FontAwesome5 name="birthday-cake" size={16} color="#6B7280" style={{ marginRight: 8 }} />
+        <Text className="flex-1 text-gray-800 text-sm">
+          {applicationData.age ? `${applicationData.age} years old` : "Age will appear here"}
+        </Text>
+      </View>
+
+      
+     {/* Gender */}
+<View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2">
+  <FontAwesome5 name="venus-mars" size={16} color="#6B7280" style={{ marginRight: 8 }} />
+  
+  <Picker
+    selectedValue={applicationData.gender || ""}
+    style={{ flex: 1, color: "#374151" }} // gray-700
+    onValueChange={(value) => handleChange("gender", value)}
+  >
+    <Picker.Item label="Select Gender" value="" />
+    <Picker.Item label="Male" value="Male" />
+    <Picker.Item label="Female" value="Female" />
+    <Picker.Item label="Other" value="Other" />
+  </Picker>
+</View>
+
+
+      {/* Contact Number */}
+      <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2">
+  <FontAwesome5 name="phone" size={16} color="#6B7280" style={{ marginRight: 8 }} />
+  <TextInput
+    placeholder="Contact Number"
+    keyboardType="phone-pad"
+    placeholderTextColor="#9CA3AF"
+    value={applicationData.contactNumber || ""}   // ✅ auto-filled
+    onChangeText={(v) => handleChange("contactNumber", v)}
+    className="flex-1 text-gray-800 text-sm"
+  />
+</View>
+
+      <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2">
+  <FontAwesome5 name="envelope" size={16} color="#6B7280" style={{ marginRight: 8 }} />
+  <TextInput
+    placeholder="Email"
+    keyboardType="email-address"
+    placeholderTextColor="#9CA3AF"
+    value={applicationData.email || ""}   // ✅ auto-filled
+    onChangeText={(v) => handleChange("email", v)}
+    className="flex-1 text-gray-800 text-sm"
+  />
+</View>
     </View>
 
     {/* Student Extra Fields */}
@@ -504,8 +625,9 @@ const handleSubmit = async () => {
       <View className="w-full max-w-sm mb-4">
         {[
           { placeholder: "School Name", key: "schoolName", icon: "school" },
-          { placeholder: "School Location", key: "schoolLocation", icon: "map-marker-alt" },
-          { placeholder: "School Year", key: "schoolYear", icon: "calendar-alt" },
+          { placeholder: "School Address", key: "schoolAddress", icon: "map-marker-alt" },
+          { placeholder: "Student #ID", key: "schoolID", icon: "id-card" },
+          { placeholder: "Grade Year/Level", key: "gradeYear", icon: "graduation-cap" },
         ].map((field, idx) => (
           <View
             key={idx}
@@ -597,54 +719,109 @@ const handleSubmit = async () => {
     })()}
 
     {/* Step navigation */}
-    <TouchableOpacity
-      onPress={() => {
-        const categoryFields: Record<string, string[]> = {
-          student: ['Proof of Enrollment'],
-          pwd: ['PWD ID Front'],
-          senior: ['Senior ID Front'],
-        };
-        const fields = categoryFields[category] || [];
-        const hasAllImages = fields.every((label) => {
-          const fieldName = label
-            .replace(/\s+/g, '') 
-            .replace(/[^a-zA-Z0-9]/g, '') 
-            .replace(/^[A-Z]/, (m) => m.toLowerCase());
-          return !!files[fieldName]?.uri;
-        });
+    <View className="flex-row w-full max-w-xs justify-between mt-4">
 
-        // if (!hasAllImages) {
-        //   Alert.alert('Missing File', 'Please upload all required images before continuing.');
-        //   return;
-        // }
-        goNext();
-      }}
-      className="bg-[#0c2340] py-3 px-6 rounded-full w-full max-w-xs items-center"
-    >
-      <Text className="text-white font-semibold">Next</Text>
-    </TouchableOpacity>
+  {/* Back button */}
+  <TouchableOpacity
+    onPress={goBack}
+    className="flex-1 py-3 mr-2 border border-gray-300 rounded-full items-center"
+  >
+    <Text className="text-gray-700 font-medium">Back</Text>
+  </TouchableOpacity>
+
+  {/* Next button */}
+  <TouchableOpacity
+    onPress={() => {
+      const categoryFields: Record<string, string[]> = {
+        student: ['Proof of Enrollment'],
+        pwd: ['PWD ID Front'],
+        senior: ['Senior ID Front'],
+      };
+      const fields = categoryFields[category] || [];
+      const hasAllImages = fields.every((label) => {
+        const fieldName = label
+          .replace(/\s+/g, '') 
+          .replace(/[^a-zA-Z0-9]/g, '') 
+          .replace(/^[A-Z]/, (m) => m.toLowerCase());
+        return !!files[fieldName]?.uri;
+      });
+
+      // if (!hasAllImages) {
+      //   Alert.alert('Missing File', 'Please upload all required images before continuing.');
+      //   return;
+      // }
+      goNext();
+    }}
+    className="flex-1 py-3 ml-2 bg-[#0c2340] rounded-full items-center"
+  >
+    <Text className="text-white font-semibold">Next</Text>
+  </TouchableOpacity>
+
+</View>
+
   </View>
 )}
 
           {/* Step 5: Review & Submit */}
           {step === 5 && (
-            <View className="items-center">
-              <Text className="text-2xl font-bold text-center text-[#0c2340] mb-2">Review Information</Text>
-              <View className="bg-gray-100 rounded-xl p-4 w-full max-w-sm mb-6">
-                {Object.entries(applicationData).map(([key, value]) => (
-                  <Text key={key} className="text-base mb-1">
-                    {key}: {value}
-                  </Text>
-                ))}
-              </View>
-              <TouchableOpacity onPress={handleSubmit} className="bg-[#0c2340] py-3 px-6 rounded-full w-full max-w-xs items-center">
-                <Text className="text-white font-semibold">Submit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={goBack} className="mt-2 py-2 px-4 border border-gray-400 rounded-full w-full max-w-xs items-center">
-                <Text className="text-gray-700 font-medium">Back</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+            <View className="items-center w-full px-4">
+    <Text className="text-xl font-bold text-[#0c2340] mb-4 text-center">
+      Review Information
+    </Text>
+
+    {/* Example: showing fields */}
+    <View className="w-full max-w-sm space-y-2">
+      <Text className="text-gray-600">First Name: {applicationData.firstName}</Text>
+      <Text className="text-gray-600">Middle Name: {applicationData.middleName}</Text>
+      <Text className="text-gray-600">Last Name: {applicationData.lastName}</Text>
+      <Text className="text-gray-600">Email: {applicationData.email}</Text>
+      <Text className="text-gray-600">Contact: {applicationData.contactNumber}</Text>
+      <Text className="text-gray-600">Gender: {applicationData.gender}</Text>
+
+      {/* 🔹 Fixed Birthdate Display */}
+      <Text className="text-gray-600">
+        Birthdate:{" "}
+        {applicationData.birthdate
+          ? new Date(applicationData.birthdate).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })
+          : "Not Provided"}
+      </Text>
+
+      {/* Age */}
+      <Text className="text-gray-600">Age: {applicationData.age}</Text>
+    </View>
+
+              
+            <TouchableOpacity
+  disabled={isSubmitting}
+  onPress={async () => {
+    try {
+      setIsSubmitting(true);
+      await handleSubmit();   // ✅ use your real function
+    } catch (err) {
+      console.error("❌ Submit failed", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }}
+  className={`w-full max-w-sm py-3 rounded-xl ${
+    isSubmitting ? "bg-gray-400" : "bg-[#0c2340]"
+  }`}
+>
+  {isSubmitting ? (
+    <View className="flex-row justify-center items-center">
+      <ActivityIndicator size="small" color="#fff" />
+      <Text className="text-white ml-2">Submitting...</Text>
+    </View>
+  ) : (
+    <Text className="text-center text-white font-semibold">Submit</Text>
+  )}
+</TouchableOpacity>
+  </View>
+)}
 
           {/* Step 6: Success */}
           {step === 6 && (
