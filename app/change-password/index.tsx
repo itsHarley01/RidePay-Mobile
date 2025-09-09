@@ -1,4 +1,4 @@
-import { View, Text, TextInput, TouchableOpacity, Platform, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Platform, Alert, ActivityIndicator } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
 import { FontAwesome5 } from '@expo/vector-icons';
@@ -17,48 +17,50 @@ export default function ChangePasswordPage() {
 
   const [email, setEmail] = useState('');
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false); // ✅ Loading state
 
   // ✅ Fetch user profile to get registered email
   useEffect(() => {
-  const loadUserData = async () => {
-    try {
-      const { uid } = await getAuthData();
-      if (!uid) {
-        console.warn("⚠️ No UID found in storage");
-        return;
+    const loadUserData = async () => {
+      try {
+        const { uid } = await getAuthData();
+        if (!uid) {
+          console.warn("⚠️ No UID found in storage");
+          return;
+        }
+
+        const userData = await fetchUserDataByUid(uid);
+        console.log("📩 User data from backend:", userData);
+
+        setRegisteredEmail(userData.email || userData.data?.email);
+      } catch (error) {
+        console.error("❌ Failed to fetch user email:", error);
       }
+    };
+    loadUserData();
+  }, []);
 
-      const userData = await fetchUserDataByUid(uid);
-      console.log("📩 User data from backend:", userData);
-
-      // ⚠️ Adjust depending on backend response shape
-      setRegisteredEmail(userData.email || userData.data?.email);
-    } catch (error) {
-      console.error("❌ Failed to fetch user email:", error);
+  const handleSendResetLink = async () => {
+    if (!email) {
+      Alert.alert("Error", "Please enter your email first.");
+      return;
     }
-  };
-  loadUserData();
-}, []);
 
-const handleSendResetLink = async () => {
-  if (!email) {
-    Alert.alert("Error", "Please enter your email first.");
-    return;
-  }
+    if (!isValidEmail(email)) {
+      Alert.alert("Error", "Please enter a valid email address.");
+      return;
+    }
 
-  if (!isValidEmail(email)) {
-    Alert.alert("Error", "Please enter a valid email address.");
-    return;
-  }
+    if (
+      registeredEmail &&
+      email.trim().toLowerCase() !== registeredEmail.trim().toLowerCase()
+    ) {
+      Alert.alert("Error", "The email does not match your registered account.");
+      return;
+    }
 
-  if (
-    registeredEmail &&
-    email.trim().toLowerCase() !== registeredEmail.trim().toLowerCase()
-  ) {
-    Alert.alert("Error", "The email does not match your registered account.");
-    return;
-  }
     try {
+      setLoading(true); // ✅ Show loader
       const res = await sendResetLink(email);
       Alert.alert("Success", res.message || "Reset link sent to your email!");
 
@@ -68,6 +70,8 @@ const handleSendResetLink = async () => {
     } catch (error: any) {
       console.error("Error sending reset link:", error);
       Alert.alert("Error", error?.response?.data?.message || "The email you entered is not registered.");
+    } finally {
+      setLoading(false); // ✅ Hide loader
     }
   };
 
@@ -102,9 +106,11 @@ const handleSendResetLink = async () => {
 
       <TouchableOpacity
         onPress={handleSendResetLink}
+        disabled={loading} // ✅ Disable while loading
         className="p-4 rounded-xl items-center"
         style={{
-          backgroundColor: '#F59E0B',
+          backgroundColor: loading ? '#D97706' : '#F59E0B',
+          opacity: loading ? 0.8 : 1,
           shadowColor: '#000',
           shadowOpacity: 0.1,
           shadowRadius: 6,
@@ -112,13 +118,16 @@ const handleSendResetLink = async () => {
           elevation: Platform.OS === 'android' ? 4 : 0,
         }}
       >
-        <Text className="text-white font-bold text-base">Send Reset Link</Text>
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text className="text-white font-bold text-base">Send Reset Link</Text>
+        )}
       </TouchableOpacity>
     </SafeAreaView>
   );
 }
+
 function isValidEmail(email: string): boolean {
-  // Simple email validation regex
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
-

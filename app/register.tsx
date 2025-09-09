@@ -10,6 +10,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator
 } from 'react-native';
 
 
@@ -31,6 +32,9 @@ export default function RegisterPage() {
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
+  const [loadingOtp, setLoadingOtp] = useState(false);
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
+
    useEffect(() => {
   if (timer <= 0) return; // stop when 0
   const interval = setInterval(() => {
@@ -51,41 +55,42 @@ export default function RegisterPage() {
     return;
   }
 
-  try {
-    const res = await apiSendOtp(email.trim());
-    if (res.success) {
-      setOtpSent(true);
-      setOtp('');
-      setTimer(60);
-      setError(res.message);
-    } else {
-      // Alert.alert('Failed', res.message);
-      setError(res.message);
+   try {
+      setLoadingOtp(true); // start loading
+      const res = await apiSendOtp(email.trim());
+      if (res.success) {
+        setOtpSent(true);
+        setOtp('');
+        setTimer(60);
+        setError(res.message);
+      } else {
+        setError(res.message);
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to send OTP.');
+    } finally {
+      setLoadingOtp(false); // stop loading
     }
-  } catch (err: any) {
-    // Alert.alert('Error', err?.message || 'Failed to send OTP.');
-    setError(err?.message || 'Failed to send OTP.');
-  }
-};
+  };
 
 // ✅ handle OTP verify before going next
 const handleVerifyOtpAndNext = async () => {
-  if (!otp.trim()) {
-    setErrors((prev) => ({ ...prev, otp: 'Please enter your OTP.' }));
-    return;
-  }
-
-  try {
-    const res = await apiVerifyOtp(email.trim(), otp.trim());
-    if (res.success) {
-      nextStep(); // move to Step 2
-    } else {
-      setErrors((prev) => ({ ...prev, otp: res.message || 'Invalid OTP.' }));
+    if (!otp.trim()) {
+      setErrors((prev) => ({ ...prev, otp: 'Please enter your OTP.' }));
+      return;
     }
-  } catch (err: any) {
-    Alert.alert('Error', err?.message || 'OTP verification failed.');
-  }
-};
+
+    try {
+      const res = await apiVerifyOtp(email.trim(), otp.trim());
+      if (res.success) {
+        nextStep();
+      } else {
+        setErrors((prev) => ({ ...prev, otp: res.message || 'Invalid OTP.' }));
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'OTP verification failed.');
+    }
+  };
 
 // --- inside validateStep ---
 const validateStep = () => {
@@ -120,12 +125,14 @@ const validateStep = () => {
         }
       }
     }
-
-    if (step === 3) {
+if (step === 3) {
   if (!password) {
     newErrors.password = 'Password is required.';
   } else if (password.length < 8) {
     newErrors.password = 'Password must be at least 8 characters long.';
+  } else if (!/[A-Z]/.test(password) && !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    newErrors.password =
+      'Password must contain at least one uppercase letter or one special character.';
   }
 
   if (!confirmPassword) {
@@ -134,6 +141,7 @@ const validateStep = () => {
     newErrors.confirmPassword = 'Passwords do not match.';
   }
 }
+
 
     setErrors(newErrors);
 
@@ -156,30 +164,32 @@ const prevStep = () => {
 };
 
   const handleSubmit = async () => {
-  if (!validateStep()) return;
+    if (!validateStep()) return;
+    setError('');
+    setErrors({});
 
-  setError('');
-  setErrors({});
+    try {
+      setLoadingSubmit(true); // start loading
+      const payload: any = {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        password: password,
+        contactNumber: phoneNumber.trim(),
+      };
+      await registerPassenger(payload);
+      setShowModal(true);
+    } catch (error: any) {
+      console.error('Registration Error:', error);
+      Alert.alert(
+        'Registration Failed',
+        error?.error || 'Something went wrong. Please try again.'
+      );
+    } finally {
+      setLoadingSubmit(false); // stop loading
+    }
+  };
 
-  try {
-    const payload: any = {
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      email: email.trim(),
-      password: password,
-      contactNumber: phoneNumber.trim(),
-    };
-
-    await registerPassenger(payload);
-    setShowModal(true);
-  } catch (error: any) {
-    console.error('Registration Error:', error);
-    Alert.alert(
-      'Registration Failed',
-      error?.error || 'Something went wrong. Please try again.'
-    );
-  }
-};
   
 
   const getStepIcon = (stepNumber: number) => {
@@ -316,12 +326,19 @@ const prevStep = () => {
     )}
 
     {!otpSent && (
-      <TouchableOpacity
-        className="bg-[#0A2A54] py-3 rounded-xl mt-3"
-        onPress={handleSendOtp}
-      >
-        <Text className="text-white text-center font-medium">Send OTP</Text>
-      </TouchableOpacity>
+                <TouchableOpacity
+                  className="bg-[#0A2A54] py-3 rounded-xl mt-3 flex-row justify-center items-center"
+                  onPress={handleSendOtp}
+                  disabled={loadingOtp}
+                >
+                  {loadingOtp ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text className="text-white text-center font-medium">
+                      Send OTP
+                    </Text>
+                  )}
+                </TouchableOpacity>
     )}
 
     <TouchableOpacity
@@ -431,19 +448,29 @@ const prevStep = () => {
 
 {/* Show live character feedback */}
 {password.length > 0 && (
-  <Text
-    className={`text-xs mt-1 ml-1 ${
-      password.length < 8 ? 'text-red-500' : 'text-green-600'
-    }`}
-  >
-    {password.length < 8
-      ? `Password must be at least 8 characters. Currently: ${password.length}`
-      : `Password length is good (${password.length} characters)`}
-  </Text>
-)}
+  <View className="mt-2 ml-1">
+    <Text
+      className={`text-xs ${
+        password.length < 8 ? 'text-red-500' : 'text-green-600'
+      }`}
+    >
+      {password.length < 8
+        ? 'Must be at least 8 characters'
+        : '✓ Length OK'}
+    </Text>
 
-{errors.password && (
-  <Text className="text-red-500 text-xs mt-1 ml-1">{errors.password}</Text>
+    <Text
+      className={`text-xs ${
+        /[A-Z]/.test(password) || /[!@#$%^&*(),.?":{}|<>]/.test(password)
+          ? 'text-green-600'
+          : 'text-red-500'
+      }`}
+    >
+      {/[A-Z]/.test(password) || /[!@#$%^&*(),.?":{}|<>]/.test(password)
+        ? '✓ Contains uppercase or special character'
+        : 'Must contain uppercase or special character'}
+    </Text>
+  </View>
 )}
 
 
@@ -478,7 +505,8 @@ const prevStep = () => {
     !password ||
     !confirmPassword ||
     password !== confirmPassword ||
-    password.length < 8
+    password.length < 8 ||
+    (!/[A-Z]/.test(password) && !/[!@#$%^&*(),.?":{}|<>]/.test(password))
       ? 'bg-gray-400'
       : 'bg-[#0A2A54]'
   }`}
@@ -487,11 +515,20 @@ const prevStep = () => {
     !password ||
     !confirmPassword ||
     password !== confirmPassword ||
-    password.length < 8
+    password.length < 8 ||
+    (!/[A-Z]/.test(password) && !/[!@#$%^&*(),.?":{}|<>]/.test(password))
   }
 >
-  <Text className="text-white text-center font-medium">Submit</Text>
-</TouchableOpacity>
+  
+{loadingSubmit ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white text-center font-medium">
+                    Submit
+                  </Text>
+                )}
+              </TouchableOpacity>
+
 
               </View>
             </>

@@ -10,7 +10,7 @@ interface FileData {
 interface DiscountApplicationData {
   userId: string;
   category: 'student' | 'senior' | 'pwd';
-  data: Record<string, any>;
+  data?: Record<string, any>;
   files?: Record<string, FileData>;
 }
 
