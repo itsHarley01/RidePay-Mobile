@@ -1,5 +1,5 @@
-import axiosInstance from './axiosIntance';
 import { Platform } from 'react-native';
+import axiosInstance from './axiosIntance';
 
 interface FileData {
   uri: string;
@@ -61,5 +61,32 @@ export const submitDiscountApplication = async ({
       error.response?.data || error.message
     );
     throw error.response?.data || { error: 'Failed to submit discount application' };
+  }
+};
+
+export interface DiscountApplication {
+  id: string;
+  category: 'student' | 'senior' | 'pwd';
+  data: Record<string, any>;
+  file: Record<string, string>;
+  status: {
+    dateOfApplication: string;
+    dateOfApproval?: string;
+    discountExpiration?: string;
+    status: 'approved' | 'pending' | 'rejected';
+  };
+  userId: string;
+}
+
+export const getDiscountApplications = async (): Promise<DiscountApplication[]> => {
+  try {
+    const response = await axiosInstance.get('/discount/applications');
+    return response.data as DiscountApplication[];
+  } catch (error: any) {
+    console.error(
+      '❌ Error fetching discount applications:',
+      error.response?.data || error.message
+    );
+    throw error.response?.data || { error: 'Failed to fetch discount applications' };
   }
 };

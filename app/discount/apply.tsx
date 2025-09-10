@@ -1,27 +1,26 @@
   // File: app/discount/apply.tsx
-  import { FontAwesome5 } from '@expo/vector-icons';
-  import { router } from 'expo-router';
-  import { Picker } from '@react-native-picker/picker';
-  import * as ImagePicker from 'expo-image-picker';
-  import DateTimePicker from '@react-native-community/datetimepicker';
-  import { fetchUserDataByUid } from '@/api/userApi';
-  import React, { useState, useEffect } from 'react';
-  import {
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
-    Alert,
-    Image,
-    TextInput,
-    Linking,
-    ActivityIndicator
-  } from 'react-native';
-  import AnimatedCircularProgress from '@/components/AnimatedCircularProgress';
-  import { getAuthData } from '@/utils/auth';
   import { submitDiscountApplication } from '@/api/applyDiscount';
-  import { checkDiscountApplication } from '@/api/checkDiscountApplication';
-  import { Modal } from 'react-native'; 
+import { checkDiscountApplication } from '@/api/checkDiscountApplication';
+import { fetchUserDataByUid } from '@/api/userApi';
+import AnimatedCircularProgress from '@/components/AnimatedCircularProgress';
+import { getAuthData } from '@/utils/auth';
+import { FontAwesome5 } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
+import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Linking,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
   const stepsTotal = 6;
 
