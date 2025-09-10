@@ -5,7 +5,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
 import { Entypo, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { act, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 
@@ -16,7 +16,7 @@ export default function ExplorePage() {
   const [showDiscountModal, setShowDiscountModal] = useState(false);
 
   const handleAccountDiscount = () => {
-  const hasDiscount = true;
+  const hasDiscount = false;
 
   if (!hasDiscount) {
     setShowDiscountModal(true);
@@ -24,7 +24,7 @@ export default function ExplorePage() {
       router.push('/discount');
     }
   };
-
+  
 
   return (
     <ScrollView style={{ backgroundColor: colors.background }} className="flex-1 px-4 pt-10 pb-32">
@@ -40,7 +40,7 @@ export default function ExplorePage() {
           { icon: <Ionicons name="chatbubble-ellipses" size={28} color={colors.text} />, label: "Support", action: () => router.push('/support')},
           { icon: <MaterialIcons name="history" size={28} color={colors.text} />, label: "History", action: () => router.push('/transaction-history') },
           { icon: <MaterialIcons name="report-problem" size={28} color={colors.text} />, label: "Report", action:  () => router.push('/report')},
-          { icon: <Ionicons name="thumbs-up" size={28} color={colors.text} />, label: "Feedback" },
+          { icon: <Ionicons name="thumbs-up" size={28} color={colors.text} />, label: "Feedback", action: () => router.push('/feedback') },
         ].map((item, idx) => (
           <TouchableOpacity
             key={idx}
@@ -78,10 +78,10 @@ export default function ExplorePage() {
       <View className="flex-row flex-wrap gap-x-4 mb-32">
         {[
   { icon: <Ionicons name="help-circle" size={28} color={colors.text} />, label: "FAQ", action: () => router.push('/faq')},
-  { icon: <Ionicons name="book" size={28} color={colors.text} />, label: "App Guide" },
+  { icon: <Ionicons name="book" size={28} color={colors.text} />, label: "App Guide", action: () => router.push('/guide')},
   { icon: <Ionicons name="information-circle" size={28} color={colors.text} />, label: "About Us", action: () => router.push('/aboutus')},
   { icon: <Ionicons name="shield-checkmark" size={28} color={colors.text} />, label: "Privacy Policy", action: () => router.push('/privacy-policy')},
-  { icon: <Ionicons name="document-text" size={28} color={colors.text} />, label: "Terms & Conditions" },
+  { icon: <Ionicons name="document-text" size={28} color={colors.text} />, label: "Terms & Conditions", action: () => router.push('/terms') },
 ].map((item, idx) => (
   <TouchableOpacity
     key={idx}
