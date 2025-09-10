@@ -1,14 +1,43 @@
 // File: app/discount/index.tsx
+import { getDiscountApplications } from '@/api/applyDiscount';
 import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
+import { getAuthData } from '@/utils/auth';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 export default function DiscountIndex() {
-  const hasDiscount = false; // Simulate already applied or active discount
   const { theme } = useTheme();
   const colors = theme === 'dark' ? darkColors : lightColors;
+
+  const [loading, setLoading] = useState(true);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        const { uid } = await getAuthData();
+        if (!uid) return;
+
+        setUserId(uid);
+
+        const data = await getDiscountApplications();
+        if (data && Array.isArray(data)) {
+          const userApps = data.filter((app) => app.userId === uid);
+          setApplications(userApps);
+        }
+      } catch (err) {
+        console.error('Error fetching discount applications:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApplications();
+  }, []);
 
   return (
     <View
@@ -23,61 +52,72 @@ export default function DiscountIndex() {
         <FontAwesome5 name="arrow-left" size={20} color={colors.subtext} />
       </TouchableOpacity>
 
-      <View className="mt-20">
-        <Text
-          style={{ color: colors.subtext }}
-          className="text-3xl font-bold text-center mb-8"
-        >
-          Account Discount
-        </Text>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <View className="mt-20">
+          <Text
+            style={{ color: colors.subtext }}
+            className="text-3xl font-bold text-center mb-8"
+          >
+            Account Discount
+          </Text>
 
-        {hasDiscount ? (
-          <View className="bg-[#0c2340] p-6 rounded-xl shadow-md">
-            <Text style={{ color: colors.text }} className="text-lg font-bold mb-4 text-white">
-              You already have an active discount!
-            </Text>
-
-            <Text style={{ color: colors.text }} className="text-lg mb-2">
-              Discount Type:{' '}
-              <Text className="font-bold text-white">Student</Text>
-            </Text>
-            <Text style={{ color: colors.text }} className="text-lg mb-2">
-              Percentage:{' '}
-              <Text className="font-bold text-white">20%</Text>
-            </Text>
-            <Text style={{ color: colors.text }} className="text-lg">
-              Expires:{' '}
-              <Text className="font-bold text-white">2025-05-01</Text>
-            </Text>
-
-            <TouchableOpacity
-              onPress={() => router.replace('/(tabs)/home')}
-              className="bg-white mt-6 px-6 py-3 rounded-full shadow-md"
-            >
-              <Text className="text-[#0c2340] font-semibold text-base">
-                Back to Home
+          {loading ? (
+            <ActivityIndicator size="large" color={colors.placeholder} />
+          ) : applications.length > 0 ? (
+            applications.map((app) => (
+              <View
+                key={app.id}
+                className="bg-[#0c2340] p-6 mb-6 rounded-2xl shadow-lg"
+              >
+                <Text className="text-white text-xl font-bold mb-2">
+                  Discount Type: {app.category.toUpperCase()}
+                </Text>
+                <Text style={{ color: colors.text }} className="text-base mb-1">
+                  Discount ID:{' '}
+                  <Text className="font-semibold text-white">{app.id}</Text>
+                </Text>
+                <Text style={{ color: colors.text }} className="text-base mb-1">
+                  Status:{' '}
+                  <Text
+                    className={`font-bold ${
+                      app.status.status === 'approved'
+                        ? 'text-green-400'
+                        : app.status.status === 'rejected'
+                        ? 'text-red-400'
+                        : 'text-yellow-400'
+                    }`}
+                  >
+                    {app.status.status.toUpperCase()}
+                  </Text>
+                </Text>
+                <Text style={{ color: colors.text }} className="text-base">
+                  Applied On:{' '}
+                  <Text className="font-semibold text-white">
+                    {new Date(app.status.dateOfApplication).toLocaleDateString()}
+                  </Text>
+                </Text>
+              </View>
+            ))
+          ) : (
+            <View className="items-center mt-10">
+              <Text
+                style={{ color: colors.placeholder }}
+                className="text-base mb-6 text-center"
+              >
+                You don’t currently have any discount applications.
               </Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View className="items-center mt-10">
-            <Text
-              style={{ color: colors.placeholder }}
-              className="text-base mb-6 text-center"
-            >
-              You don't currently have an active discount.
-            </Text>
-            <TouchableOpacity
-              onPress={() => router.push('/discount/apply')}
-              className="bg-[#0c2340] px-6 py-3 rounded-full shadow-md"
-            >
-              <Text className="text-white font-semibold text-base">
-                Apply for Discount
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
+              <TouchableOpacity
+                onPress={() => router.push('/discount/apply')}
+                className="bg-[#0c2340] px-6 py-3 rounded-full shadow-md"
+              >
+                <Text className="text-white font-semibold text-base">
+                  Apply for Discount
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </View>
   );
 }
