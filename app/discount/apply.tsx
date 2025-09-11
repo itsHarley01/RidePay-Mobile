@@ -21,6 +21,9 @@
   import { getAuthData } from '@/utils/auth';
   import { submitDiscountApplication } from '@/api/applyDiscount';
   import { checkDiscountApplication } from '@/api/checkDiscountApplication';
+  import { KeyboardAvoidingView, Platform } from "react-native";
+  import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+
   import { Modal } from 'react-native'; 
 
   const stepsTotal = 6;
@@ -120,11 +123,13 @@ const validateField = (key: string, value: string) => {
       if (!value.trim()) message = "This field is required.";
       break;
 
-    case "contactNumber":
-      if (!/^[0-9]{11}$/.test(value)) {
-        message = "Contact number must be 11 digits.";
-      }
+    case "schoolName":
+      if (!value.trim()) message = "This field is required.";
       break;
+
+    case "schoolLocation":
+    if (!value.trim()) message = "This field is required.";
+    break;
 
     case "email":
       if (!/^\S+@\S+\.\S+$/.test(value)) {
@@ -135,6 +140,15 @@ const validateField = (key: string, value: string) => {
     case "idNum":
       if (!value.trim()) message = "Student ID is required.";
       break;
+    
+    case "pwdId":
+      if (!value.trim()) message = "PWD ID is required.";
+      break; 
+
+    case "seniorId":
+      if (!value.trim()) message = "Senior ID is required.";
+      break;
+     
   }
 
   setErrors((prev) => ({ ...prev, [key]: message }));
@@ -380,7 +394,6 @@ useEffect(() => {
       const today = new Date();
       const birthDate = new Date(value);
 
-      // 🚨 If user picked a future date
       if (birthDate > today) {
         setErrors((prev) => ({
           ...prev,
@@ -395,8 +408,22 @@ useEffect(() => {
         }
         updated.age = age.toString();
 
-        // ✅ Clear error if valid
         setErrors((prev) => ({ ...prev, birthDate: "" }));
+      }
+    }
+
+    // ✅ Date of Issuance handling
+    if (key === "dateOfIssuance") {
+      const today = new Date();
+      const issuanceDate = new Date(value);
+
+      if (issuanceDate > today) {
+        setErrors((prev) => ({
+          ...prev,
+          dateOfIssuance: "Date of Issuance cannot be in the future.",
+        }));
+      } else {
+        setErrors((prev) => ({ ...prev, dateOfIssuance: "" }));
       }
     }
 
@@ -404,7 +431,9 @@ useEffect(() => {
   });
 
   // Run validation for other fields
-  if (key !== "birthDate") validateField(key, value);
+  if (key !== "birthDate" && key !== "dateOfIssuance") {
+    validateField(key, value);
+  }
 };
 
 
@@ -724,6 +753,17 @@ useEffect(() => {
 
             {/* Step 3: Application Form */}
         {step === 3 && (
+          <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === "ios" ? "padding" : undefined}
+    keyboardVerticalOffset={100} // adjust if needed for header/navbar
+  >
+    <KeyboardAwareScrollView
+      enableOnAndroid
+      extraScrollHeight={20} // pushes up a bit when focused
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
     <View className="items-center w-full px-4">
       <Text className="text-xl font-bold text-[#0c2340] mb-4 text-center">
         Fill Out Your Details
@@ -856,20 +896,26 @@ useEffect(() => {
     {[
       { placeholder: "School Name", key: "schoolName", icon: "school", editable: true },
       { placeholder: "School Address", key: "schoolLocation", icon: "map-marker-alt", editable: true },
-      { placeholder: "Student #ID", key: "idNum", icon: "id-card", editable: true },
+      { placeholder: "Student #ID", key: "idNum", icon: "id-card", editable: true,  },
       { placeholder: "Year & Level", key: "schoolYear", icon: "graduation-cap", editable: false }, // auto-filled
     ].map((field, idx) => (
       <View key={idx} className="mb-2">
         <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm">
           <FontAwesome5 name={field.icon as any} size={16} color="#6B7280" style={{ marginRight: 8 }} />
           <TextInput
-            placeholder={field.placeholder}
-            placeholderTextColor="#9CA3AF"
-            value={applicationData[field.key] || ""}
-            onChangeText={(v) => handleChange(field.key, v)}
-            editable={field.editable}
-            className="flex-1 text-gray-800 text-sm"
-          />
+  placeholder={field.placeholder}
+  placeholderTextColor="#9CA3AF"
+  value={applicationData[field.key] || ""}
+  onChangeText={(v) =>
+    handleChange(
+      field.key,
+      field.key === "idNum" ? v.replace(/[^0-9]/g, "") : v
+    )
+  }
+  editable={field.editable}
+  keyboardType={field.key === "idNum" ? "numeric" : "default"} // ✅ digits only for Student ID
+  className="flex-1 text-gray-800 text-sm"
+/>
         </View>
         {errors[field.key] ? (
           <Text className="text-red-500 text-xs mt-1">{errors[field.key]}</Text>
@@ -879,31 +925,42 @@ useEffect(() => {
   </View>
 )}
 
-
       {/* PWD Extra Fields */}
       {category === 'pwd' && (
-        <View className="w-full max-w-sm mb-4">
-          {[
-            { placeholder: "PWD ID #", key: "pwdId", icon: "id-card" },
-            { placeholder: "Place of Issuance", key: "pwdPlaceIssued", icon: "map-marker-alt" },
-          ].map((field, idx) => (
-            <View
-              key={idx}
-              className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2"
-            >
-              <FontAwesome5
-                name={field.icon as any}
-                size={16}
-                color="#6B7280"
-                style={{ marginRight: 8 }}
-              />
-              <TextInput
-                placeholder={field.placeholder}
-                placeholderTextColor="#9CA3AF"
-                onChangeText={(v) => handleChange(field.key, v)}
-                className="flex-1 text-gray-800 text-sm"
-              />
-            </View>
+  <View className="w-full max-w-sm mb-4">
+    {[
+      { placeholder: "PWD ID #", key: "pwdId", icon: "id-card" },
+      { placeholder: "Place of Issuance", key: "pwdPlaceIssued", icon: "map-marker-alt" },
+    ].map((field, idx) => (
+      <View key={idx} className="mb-3">
+        
+        {/* Input container */}
+        <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm">
+          <FontAwesome5
+            name={field.icon as any}
+            size={16}
+            color="#6B7280"
+            style={{ marginRight: 8 }}
+          />
+          <TextInput
+            placeholder={field.placeholder}
+            placeholderTextColor="#9CA3AF"
+            value={applicationData[field.key] || ""}
+            onChangeText={(v) =>
+              handleChange(
+                field.key,
+                field.key === "pwdId" ? v.replace(/[^0-9]/g, "") : v
+              )
+            }
+            editable={field.editable}
+            keyboardType={field.key === "pwdId" ? "numeric" : "default"}
+            className="flex-1 text-gray-800 text-sm"
+          />
+        </View>
+        {errors[field.key] ? (
+          <Text className="text-red-500 text-xs mt-1">{errors[field.key]}</Text>
+        ) : null}
+            </View> 
           ))}
 
           {/* Date of Issuance */}
@@ -929,36 +986,53 @@ useEffect(() => {
         if (selectedDate) {
           const formatted = selectedDate.toISOString().split("T")[0];
           handleChange("pwdDateIssued", formatted);
+          validateField("pwdDateIssued", formatted);
         }
+        {errors.pwdDateIssued ? (
+  <Text className="text-red-500 text-xs mt-1">{errors.pwdDateIssued}</Text>
+) : null}
       }}
+      
     />
   )}
-        </View>
+        </View>  
       )}
 
       {/* Senior Extra Fields */}
-      {category === 'senior' && (
-        <View className="w-full max-w-sm mb-4">
-          {[
-            { placeholder: "Senior ID #", key: "seniorId", icon: "id-card" },
-            { placeholder: "Place of Issuance", key: "seniorPlaceIssued", icon: "map-marker-alt" },
-          ].map((field, idx) => (
-            <View
-              key={idx}
-              className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2"
-            >
-              <FontAwesome5
-                name={field.icon as any}
-                size={16}
-                color="#6B7280"
-                style={{ marginRight: 8 }}
-              />
-              <TextInput
-                placeholder={field.placeholder}
-                placeholderTextColor="#9CA3AF"
-                onChangeText={(v) => handleChange(field.key, v)}
-                className="flex-1 text-gray-800 text-sm"
-              />
+     {category === 'senior' && (
+  <View className="w-full max-w-sm mb-4">
+    {[
+      { placeholder: "Senior ID #", key: "seniorId", icon: "id-card" },
+      { placeholder: "Place of Issuance", key: "seniorPlaceIssued", icon: "map-marker-alt" },
+    ].map((field, idx) => (
+      <View key={idx} className="mb-3">
+        
+        {/* Input container */}
+        <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm">
+          <FontAwesome5
+            name={field.icon as any}
+            size={16}
+            color="#6B7280"
+            style={{ marginRight: 8 }}
+          />
+          <TextInput
+            placeholder={field.placeholder}
+            placeholderTextColor="#9CA3AF"
+            value={applicationData[field.key] || ""}
+            onChangeText={(v) =>
+              handleChange(
+                field.key,
+                field.key === "seniorId" ? v.replace(/[^0-9]/g, "") : v
+              )
+            }
+            editable={field.editable}
+            keyboardType={field.key === "seniorId" ? "numeric" : "default"} 
+            className="flex-1 text-gray-800 text-sm"
+          />
+        </View>
+          {errors[field.key] ? (
+          <Text className="text-red-500 text-xs mt-1">{errors[field.key]}</Text>
+        ) : null}
             </View>
           ))}
 
@@ -985,7 +1059,11 @@ useEffect(() => {
         if (selectedDate) {
           const formatted = selectedDate.toISOString().split("T")[0];
           handleChange("seniorDateIssued", formatted);
+          validateField("seniorDateIssued", formatted);
         }
+        {errors.pwdDateIssued ? (
+  <Text className="text-red-500 text-xs mt-1">{errors.pwdDateIssued}</Text>
+) : null}
       }}
     />
   )}
@@ -1023,6 +1101,8 @@ useEffect(() => {
     </TouchableOpacity>
   </View>
     </View>
+    </KeyboardAwareScrollView>
+  </KeyboardAvoidingView>
   )}
 
   {/* STEP 4 – File Upload */}

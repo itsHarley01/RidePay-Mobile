@@ -24,7 +24,7 @@
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "dotenv": "^17.2.2",
-    "expo": "~53.0.12",
+    "expo": "^54.0.1",
     "expo-blur": "~14.1.5",
     "expo-camera": "~16.1.10",
     "expo-constants": "~17.1.6",
