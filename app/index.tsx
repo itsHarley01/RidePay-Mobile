@@ -30,7 +30,7 @@ export default function LoginScreen() {
       ? require('../assets/images/dark-logo.png')
       : require('../assets/images/ridepay-logo2.png');
 
-  const handleLogin = async () => {
+   const handleLogin = async () => {
     setErrors({ email: '', password: '' });
 
     if (!email || !password) {
@@ -47,18 +47,22 @@ export default function LoginScreen() {
       await saveAuthData(res.uid, res.token);
       router.replace('/(tabs)/home');
     } catch (error: any) {
-      const message = error?.error || error?.message || '';
+      // ✅ normalize API error
+      const message = error?.response?.data?.error || error?.message || '';
+
       if (message.toLowerCase().includes('not registered')) {
         setErrors({ email: "Account hasn't been registered", password: '' });
       } else if (message.toLowerCase().includes('invalid password')) {
         setErrors({ email: '', password: 'Invalid password' });
       } else {
+        // fallback: show a generic login error under password
         setErrors({ email: '', password: 'Invalid email or password' });
       }
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <View style={{ backgroundColor: colors.background }} className="flex-1 justify-center items-center px-4">

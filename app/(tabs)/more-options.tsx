@@ -5,34 +5,61 @@ import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
 import { Entypo, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { act, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-
 
 export default function ExplorePage() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = theme === 'dark' ? darkColors : lightColors;
+  
   const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [hasDiscount, setHasDiscount] = useState<boolean | null>(null);
+
+  // ✅ Fetch discount status from API (or local storage)
+  useEffect(() => {
+    const fetchDiscountStatus = async () => {
+      try {
+        // Example API call: replace with your own
+        // const res = await getUserDiscountStatus(userId);
+        // setHasDiscount(res.hasDiscount);
+
+        // For now, simulate response:
+        setHasDiscount(true); // or false if no discount
+      } catch (error) {
+        console.error("Failed to fetch discount status:", error);
+        setHasDiscount(false);
+      }
+    };
+
+    fetchDiscountStatus();
+  }, []);
 
   const handleAccountDiscount = () => {
-  const hasDiscount = false;
-
-  if (!hasDiscount) {
-    setShowDiscountModal(true);
-    } else {
+    if (hasDiscount) {
       router.push('/discount');
+    } else {
+      setShowDiscountModal(true);
     }
   };
-  
 
   return (
-    <ScrollView style={{ backgroundColor: colors.background }} className="flex-1 px-4 pt-10 pb-32">
+    <ScrollView
+      style={{ backgroundColor: colors.background }}
+      className="flex-1 px-4 pt-10 pb-32"
+    >
       {/* Page Title */}
-      <Text style={{ color: colors.text }} className="text-2xl font-bold mb-6 text-center">Explore More</Text>
+      <Text
+        style={{ color: colors.text }}
+        className="text-2xl font-bold mb-6 text-center"
+      >
+        Explore More
+      </Text>
 
       {/* SERVICES */}
-      <Text style={{ color: colors.text }} className="text-xl font-bold mb-4">Services</Text>
+      <Text style={{ color: colors.text }} className="text-xl font-bold mb-4">
+        Services
+      </Text>
       <View className="flex-row flex-wrap justify-between mb-8">
         {[
           { icon: <Ionicons name="wallet" size={28} color={colors.text} />, label: "Top Up", action: () => router.push('/topup') },
@@ -97,6 +124,7 @@ export default function ExplorePage() {
 
       </View>
 
+
       <ModalMessage
         visible={showDiscountModal}
         onClose={() => setShowDiscountModal(false)}
@@ -109,10 +137,8 @@ export default function ExplorePage() {
         primaryButtonText="Apply for Discount"
       />
 
-      
-
-      <View className=' mt-auto h-64'>
-        <Footer/>
+      <View className="mt-auto h-64">
+        <Footer />
       </View>
     </ScrollView>
   );

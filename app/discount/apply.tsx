@@ -1,12 +1,9 @@
   // File: app/discount/apply.tsx
   import { submitDiscountApplication } from '@/api/applyDiscount';
-<<<<<<< HEAD
-  import { checkDiscountApplication } from '@/api/checkDiscountApplication';
   import { KeyboardAvoidingView, Platform } from "react-native";
   import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
   import { Modal } from 'react-native'; 
-=======
 import { checkDiscountApplication } from '@/api/checkDiscountApplication';
 import { fetchUserDataByUid } from '@/api/userApi';
 import AnimatedCircularProgress from '@/components/AnimatedCircularProgress';
@@ -28,7 +25,6 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
->>>>>>> cc1adf59cb553cbe9aa3016b925b94ce429198e0
 
   const stepsTotal = 6;
 
