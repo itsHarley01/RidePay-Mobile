@@ -4,7 +4,7 @@ import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import { getDistance } from 'geolib';
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import mapStyle from '../../assets/map/mapStyle.json';
 
@@ -86,7 +86,15 @@ export default function TopupLocations() {
             title={marker.title}
             description={marker.description}
             onPress={() => setSelectedMarker(marker)}
-          />
+          >
+            <View className="w-10 h-10">
+              <Image
+                  source={require('../../assets/map/station-pin.png')}
+                  className="w-full h-full"
+                  resizeMode="contain"
+                />
+              </View>
+          </Marker>
         ))}
       </MapView>
 
@@ -112,6 +120,7 @@ export default function TopupLocations() {
       {/* Modal */}
       {selectedMarker && (
         <MarkerInfoModal
+          type="topup"
           marker={selectedMarker}
           distance={
             userLocation
