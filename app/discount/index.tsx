@@ -88,6 +88,11 @@ export default function DiscountIndex() {
     return expiry < today;
   };
 
+  const handleRenewal = (category: string) => {
+    // Navigate to the apply page with the category pre-filled
+    router.push(`/discount/apply?category=${category.toLowerCase()}&renewal=true`);
+  };
+
   return (
     <SafeAreaView style={{ backgroundColor: colors.background, flex: 1 }}>
       <ScrollView
@@ -197,6 +202,7 @@ export default function DiscountIndex() {
               const statusIcon = getStatusIcon(app.status.status);
               const expiring = app.status.discountExpiration && isExpiringSoon(app.status.discountExpiration);
               const expired = app.status.discountExpiration && isExpired(app.status.discountExpiration);
+              const isRejected = app.status.status.toLowerCase() === 'rejected';
 
               return (
                 <View
@@ -324,28 +330,108 @@ export default function DiscountIndex() {
                     <View style={{
                       backgroundColor: (expired ? '#ef4444' : '#f59e0b') + '15',
                       borderRadius: 8,
-                      padding: 12,
+                      padding: expired ? 16 : 12,
                       marginTop: 16,
-                      flexDirection: 'row',
-                      alignItems: 'center',
                     }}>
-                      <Ionicons 
-                        name="warning" 
-                        size={16} 
-                        color={expired ? '#ef4444' : '#f59e0b'} 
-                      />
-                      <Text style={{
-                        fontSize: 13,
-                        color: expired ? '#ef4444' : '#f59e0b',
-                        marginLeft: 8,
-                        fontWeight: '500',
-                        flex: 1,
+                      <View style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        marginBottom: expired ? 12 : 0,
                       }}>
-                        {expired 
-                          ? 'This discount has expired' 
-                          : 'This discount expires soon. Consider renewing your application.'
-                        }
-                      </Text>
+                        <Ionicons 
+                          name="warning" 
+                          size={16} 
+                          color={expired ? '#ef4444' : '#f59e0b'} 
+                        />
+                        <Text style={{
+                          fontSize: 13,
+                          color: expired ? '#ef4444' : '#f59e0b',
+                          marginLeft: 8,
+                          fontWeight: '500',
+                          flex: 1,
+                        }}>
+                          {expired 
+                            ? 'This discount has expired. You can renew your application to continue receiving benefits.' 
+                            : 'This discount expires soon. Consider renewing your application.'
+                          }
+                        </Text>
+                      </View>
+
+                      {/* Renewal Button for Expired Discounts */}
+                      {expired && (
+                        <TouchableOpacity
+                          onPress={() => handleRenewal(app.category)}
+                          style={{
+                            backgroundColor: '#0c2340',
+                            borderRadius: 8,
+                            paddingVertical: 12,
+                            paddingHorizontal: 16,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <FontAwesome5 name="sync-alt" size={14} color="white" />
+                          <Text style={{
+                            color: 'white',
+                            fontSize: 14,
+                            fontWeight: '600',
+                            marginLeft: 8,
+                          }}>
+                            Renew Discount
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+
+                  {/* Rejection Notice and Renewal Button */}
+                  {isRejected && (
+                    <View style={{
+                      backgroundColor: '#ef444415',
+                      borderRadius: 8,
+                      padding: 16,
+                      marginTop: 16,
+                    }}>
+                      <View style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        marginBottom: 12,
+                      }}>
+                        <Ionicons name="information-circle" size={16} color="#ef4444" />
+                        <Text style={{
+                          fontSize: 13,
+                          color: '#ef4444',
+                          marginLeft: 8,
+                          fontWeight: '500',
+                          flex: 1,
+                        }}>
+                          Your application was not approved. You can reapply with updated information.
+                        </Text>
+                      </View>
+                      
+                      <TouchableOpacity
+                        onPress={() => handleRenewal(app.category)}
+                        style={{
+                          backgroundColor: '#0c2340',
+                          borderRadius: 8,
+                          paddingVertical: 12,
+                          paddingHorizontal: 16,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <FontAwesome5 name="redo" size={14} color="white" />
+                        <Text style={{
+                          color: 'white',
+                          fontSize: 14,
+                          fontWeight: '600',
+                          marginLeft: 8,
+                        }}>
+                          Reapply for Discount
+                        </Text>
+                      </TouchableOpacity>
                     </View>
                   )}
                 </View>

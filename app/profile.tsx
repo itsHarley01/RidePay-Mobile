@@ -41,6 +41,7 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState<{
     firstName: string;
+    middleName: string;
     lastName: string;
     email: string;
     discount: boolean;
@@ -143,7 +144,7 @@ export default function ProfilePage() {
     {
       id: 'discount',
       icon: 'pricetag-outline',
-      title: 'Account Discount',
+      title: 'Apply Discount',
       onPress: handleAccountDiscount,
       color: colors.text,
     },
@@ -234,7 +235,7 @@ export default function ProfilePage() {
                 marginBottom: 8,
                 letterSpacing: -0.3,
               }}>
-                {profile?.firstName} {profile?.lastName}
+                {profile?.firstName} {profile?.middleName} {profile?.lastName}
               </Text>
               <Text style={{
                 fontSize: 16,

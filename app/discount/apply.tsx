@@ -1,9 +1,8 @@
-  // File: app/discount/apply.tsx
-  import { submitDiscountApplication } from '@/api/applyDiscount';
-  import { KeyboardAvoidingView, Platform } from "react-native";
-  import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
-  import { Modal } from 'react-native'; 
+import { submitDiscountApplication } from '@/api/applyDiscount';
+import { KeyboardAvoidingView, Platform } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { Modal } from 'react-native'; 
 import { checkDiscountApplication } from '@/api/checkDiscountApplication';
 import { fetchUserDataByUid } from '@/api/userApi';
 import AnimatedCircularProgress from '@/components/AnimatedCircularProgress';
@@ -26,147 +25,146 @@ import {
   View
 } from 'react-native';
 
-  const stepsTotal = 6;
+const stepsTotal = 6;
 
-  // Add file requirements for each category
-  const fileRequirements: Record<string, string[]> = {
-    student: [
-      "School ID",
-    ],
-    pwd: [
-      "PWD ID",
-      "Medical Certificate"
-    ],
-    senior: [
-      "Senior Citizen ID",
-      "Birth Certificate",
-    ]
-  };
+const fileRequirements: Record<string, string[]> = {
+  student: [
+    "School ID",
+  ],
+  pwd: [
+    "PWD ID",
+    "Medical Certificate"
+  ],
+  senior: [
+    "Senior Citizen ID",
+    "Birth Certificate",
+  ]
+};
 
-  export default function DiscountApply() {
-    const [userId, setUserId] = useState<string | null>(null);
-    const [step, setStep] = useState(1);
-    const [category, setCategory] = useState<string | null>(null);
-    const [applicationData, setApplicationData] = useState<any>({});
-    const [files, setFiles] = useState<Record<string, any>>({});
+export default function DiscountApply() {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [step, setStep] = useState(1);
+  const [category, setCategory] = useState<string | null>(null);
+  const [applicationData, setApplicationData] = useState<any>({});
+  const [files, setFiles] = useState<Record<string, any>>({});
 
-    const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
-    const [alreadyApplied, setAlreadyApplied] = useState(false);
-    const [showModal, setShowModal] = useState(false)
-    const [loadingUser, setLoadingUser] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
+  const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const [showModal, setShowModal] = useState(false)
+  const [loadingUser, setLoadingUser] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const [showBirthdatePicker, setShowBirthdatePicker] = useState(false);
+  const [showBirthdatePicker, setShowBirthdatePicker] = useState(false);
   const [showPwdDatePicker, setShowPwdDatePicker] = useState(false);
   const [showSeniorDatePicker, setShowSeniorDatePicker] = useState(false);
 
-  // Auto-fill grade/year level based on current year
-const currentYear = new Date().getFullYear();
-const nextYear = currentYear + 1;
-const autoSchoolYear = `${currentYear} - ${nextYear}`;
-const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const currentYear = new Date().getFullYear();
+  const nextYear = currentYear + 1;
+  const autoSchoolYear = `${currentYear} - ${nextYear}`;
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
+  const goBack = () => {
+    if (step === 1) router.back();
+    else setStep(step - 1);
+  };
 
+  const goNext = () => {
+    const errors = validateStep();
+    if (errors.length > 0) {
+      Alert.alert("Validation Error", errors.join("\n"));
+      return;
+    }
+    setStep(prev => prev + 1);
+  };
 
-    const goBack = () => {
-      if (step === 1) router.back();
-      else setStep(step - 1);
-    };
+  const validateAllFields = () => {
+    let valid = true;
+    const newErrors: { [key: string]: string } = {};
 
-    const goNext = () => {
-  const errors = validateStep();
-  if (errors.length > 0) {
-    Alert.alert("Validation Error", errors.join("\n"));
-    return;
-  }
+    if (!applicationData.firstName?.trim()) {
+      newErrors.firstName = "First name is required.";
+      valid = false;
+    }
+    if (!applicationData.lastName?.trim()) {
+      newErrors.lastName = "Last name is required.";
+      valid = false;
+    }
+    if (!applicationData.contactNumber || !/^[0-9]{11}$/.test(applicationData.contactNumber)) {
+      newErrors.contactNumber = "Contact number must be 11 digits.";
+      valid = false;
+    }
+    if (!applicationData.email || !/^\S+@\S+\.\S+$/.test(applicationData.email)) {
+      newErrors.email = "Enter a valid email address.";
+      valid = false;
+    }
 
-  setStep(prev => prev + 1); // ✅ only proceed if no errors
-};
+    if (!applicationData.gender) {
+      newErrors.gender = "Gender is required.";
+      valid = false;
+    }
 
-const validateAllFields = () => {
-  let valid = true;
-  const newErrors: { [key: string]: string } = {};
+    setErrors(newErrors);
+    return valid;
+  };
 
-  if (!applicationData.firstName?.trim()) {
-    newErrors.firstName = "First name is required.";
-    valid = false;
-  }
-  if (!applicationData.lastName?.trim()) {
-    newErrors.lastName = "Last name is required.";
-    valid = false;
-  }
-  if (!applicationData.contactNumber || !/^[0-9]{11}$/.test(applicationData.contactNumber)) {
-    newErrors.contactNumber = "Contact number must be 11 digits.";
-    valid = false;
-  }
-  if (!applicationData.email || !/^\S+@\S+\.\S+$/.test(applicationData.email)) {
-    newErrors.email = "Enter a valid email address.";
-    valid = false;
-  }
+  const handleNext = () => {
+    if (validateAllFields()) {
+      setStep(step + 1);
+    }
+  };
 
-  setErrors(newErrors);
-  return valid;
-};
+  const validateField = (key: string, value: string) => {
+    let message = "";
 
-const handleNext = () => {
-  if (validateAllFields()) {
-    setStep(step + 1); // ✅ only go to next step if all fields valid
-  }
-};
+    switch (key) {
+      case "firstName":
+      case "lastName":
+        if (!value.trim()) message = "This field is required.";
+        break;
 
-const validateField = (key: string, value: string) => {
-  let message = "";
+      case "schoolName":
+        if (!value.trim()) message = "This field is required.";
+        break;
 
-  switch (key) {
-    case "firstName":
-    case "lastName":
-      if (!value.trim()) message = "This field is required.";
-      break;
+      case "schoolLocation":
+        if (!value.trim()) message = "This field is required.";
+        break;
 
-    case "schoolName":
-      if (!value.trim()) message = "This field is required.";
-      break;
+      case "email":
+        if (!/^\S+@\S+\.\S+$/.test(value)) {
+          message = "Enter a valid email address.";
+        }
+        break;
 
-    case "schoolLocation":
-    if (!value.trim()) message = "This field is required.";
-    break;
+      case "idNum":
+        if (!value.trim()) message = "Student ID is required.";
+        break;
+      
+      case "pwdId":
+        if (!value.trim()) message = "PWD ID is required.";
+        break; 
 
-    case "email":
-      if (!/^\S+@\S+\.\S+$/.test(value)) {
-        message = "Enter a valid email address.";
-      }
-      break;
+      case "seniorId":
+        if (!value.trim()) message = "Senior ID is required.";
+        break;
 
-    case "idNum":
-      if (!value.trim()) message = "Student ID is required.";
-      break;
-    
-    case "pwdId":
-      if (!value.trim()) message = "PWD ID is required.";
-      break; 
+      case "gender":
+        if (!value || value === "") message = "Gender is required.";
+        break; 
+    }
 
-    case "seniorId":
-      if (!value.trim()) message = "Senior ID is required.";
-      break;
-     
-  }
+    setErrors((prev) => ({ ...prev, [key]: message }));
+    return message === "";
+  };
 
-  setErrors((prev) => ({ ...prev, [key]: message }));
-  return message === "";
-};
-
-
-
-
-useEffect(() => {
-  if (category === "student") {
-    setApplicationData(prev => ({
-      ...prev,
-      schoolYear: autoSchoolYear,
-    }));
-  }
-}, [category]); // ✅ runs only when category changes
-
+  useEffect(() => {
+    if (category === "student") {
+      setApplicationData(prev => ({
+        ...prev,
+        schoolYear: autoSchoolYear,
+      }));
+    }
+  }, [category]);
 
   useEffect(() => {
     const init = async () => {
@@ -183,7 +181,6 @@ useEffect(() => {
         }
       } catch (err: any) {
         if (err.response?.status === 404) {
-          // No application found → proceed normally
           console.log("No discount application found for user.");
         } else {
           console.error('Error checking discount status:', err);
@@ -193,72 +190,74 @@ useEffect(() => {
     init();
   }, []);
 
-    if (alreadyApplied) {
+  if (alreadyApplied) {
     return (
-      <View className="flex-1 bg-white px-6 pt-12 pb-6">
-        <Text className="text-2xl font-bold text-[#0c2340] mb-4 text-center">
-          Discount Application Pending
+      <View style={{ flex: 1, backgroundColor: '#ffffff', paddingHorizontal: 24, paddingTop: 60, paddingBottom: 24 }}>
+        <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 16, textAlign: 'center' }}>
+          Application Pending
         </Text>  
 
-        <Text className="text-gray-600 text-center mb-6">
-          Your application is currently under review. Please wait for approval.
+        <Text style={{ color: '#6B7280', textAlign: 'center', marginBottom: 32, fontSize: 16 }}>
+          Your application is under review. You'll be notified once it's approved.
         </Text>
 
-        <View className="bg-gray-50 p-4 rounded-xl shadow-md mb-6">
-          <Text className="text-lg font-semibold text-[#0c2340] mb-2">Submitted Details</Text>
+        <View style={{ backgroundColor: '#F9FAFB', padding: 24, borderRadius: 12, marginBottom: 32 }}>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>Application Details</Text>
 
-          <Text className="text-gray-700">Name: {applicationData.firstName} {applicationData.lastName}</Text>
-          <Text className="text-gray-700">Category: {category}</Text>
+          <View style={{ gap: 8 }}>
+            <Text style={{ color: '#374151' }}>Name: {applicationData.firstName} {applicationData.middleName} {applicationData.lastName}</Text>
+            <Text style={{ color: '#374151' }}>Category: {category}</Text>
 
-          {category === "student" && (
-            <>
-              <Text className="text-gray-700">School: {applicationData.schoolName}</Text>
-              <Text className="text-gray-700">School Address: {applicationData.schoolLocation}</Text>
-              <Text className="text-gray-700">Student ID: {applicationData.idNum}</Text>
-              <Text className="text-gray-700">Grade Year/Level: {applicationData.schoolYear}</Text>
-            </>
-          )}
-          {category === "pwd" && (
-            <>
-              <Text className="text-gray-700">PWD ID: {applicationData.pwdId}</Text>
-              <Text className="text-gray-700">Issued At: {applicationData.pwdPlaceIssued}</Text>
-            </>
-          )}
-          {category === "senior" && (
-            <>
-              <Text className="text-gray-700">Senior ID: {applicationData.seniorId}</Text>
-              <Text className="text-gray-700">Issued At: {applicationData.seniorPlaceIssued}</Text>
-            </>
-          )}
+            {category === "student" && (
+              <>
+                <Text style={{ color: '#374151' }}>School: {applicationData.schoolName}</Text>
+                <Text style={{ color: '#374151' }}>School Address: {applicationData.schoolLocation}</Text>
+                <Text style={{ color: '#374151' }}>Student ID: {applicationData.idNum}</Text>
+                <Text style={{ color: '#374151' }}>Grade Year/Level: {applicationData.schoolYear}</Text>
+              </>
+            )}
+            {category === "pwd" && (
+              <>
+                <Text style={{ color: '#374151' }}>PWD ID: {applicationData.pwdId}</Text>
+                <Text style={{ color: '#374151' }}>Issued At: {applicationData.pwdPlaceIssued}</Text>
+              </>
+            )}
+            {category === "senior" && (
+              <>
+                <Text style={{ color: '#374151' }}>Senior ID: {applicationData.seniorId}</Text>
+                <Text style={{ color: '#374151' }}>Issued At: {applicationData.seniorPlaceIssued}</Text>
+              </>
+            )}
+          </View>
         </View>
 
         <TouchableOpacity
           onPress={() => router.replace('/(tabs)/home')}
-          className="bg-[#0c2340] py-3 px-6 rounded-full items-center"
+          style={{ backgroundColor: '#111827', paddingVertical: 16, borderRadius: 8, alignItems: 'center' }}
         >
-          <Text className="text-white font-semibold">Go Back Home</Text>
+          <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>Return Home</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-
-
-    useEffect(() => {
+  useEffect(() => {
     const loadUserProfile = async () => {
       if (!userId) return;
       setLoadingUser(true);
       try {
         const data = await fetchUserDataByUid(userId);
 
-        // ✅ Autofill email + contactNumber
         setApplicationData((prev: any) => ({
           ...prev,
           email: data.email || "",
           contactNumber: data.contactNumber || "",
+          firstName: data.firstName || "",
+          lastName: data.lastName || "",
+          middleName: data.middleName || "",
         }));
       } catch (error) {
-        console.error("❌ Failed to fetch user profile", error);
+        console.error("Failed to fetch user profile", error);
       } finally {
         setLoadingUser(false);
       }
@@ -267,9 +266,9 @@ useEffect(() => {
     loadUserProfile();
   }, [userId]);
 
-    const toCamelCase = (str: string) => {
+  const toCamelCase = (str: string) => {
     return str
-      .replace(/[^a-zA-Z0-9 ]/g, '') // remove special chars
+      .replace(/[^a-zA-Z0-9 ]/g, '')
       .split(' ')
       .map((word, index) =>
         index === 0
@@ -280,61 +279,61 @@ useEffect(() => {
   };
 
   const validateStep = () => {
-  let errors: string[] = [];
+    let errors: string[] = [];
 
-  if (step === 3) {
-    if (!applicationData.lastName) errors.push("Last Name is required");
-    if (!applicationData.firstName) errors.push("First Name is required");
-    if (!applicationData.middleName) errors.push("Middle Name is required");
-    if (!applicationData.birthDate) {
-      errors.push("Birthdate is required");
-    } else {
-      const today = new Date();
-      const birthDate = new Date(applicationData.birthDate);
+    if (step === 3) {
+      if (!applicationData.lastName) errors.push("Last Name is required");
+      if (!applicationData.firstName) errors.push("First Name is required");
+      if (!applicationData.birthDate) {
+        errors.push("Birthdate is required");
+      } else {
+        const today = new Date();
+        const birthDate = new Date(applicationData.birthDate);
 
-      // ❌ Future date not allowed
-      if (birthDate > today) {
-        errors.push("Birthdate cannot be in the future.");
+        if (birthDate > today) {
+          errors.push("Birthdate cannot be in the future.");
+        }
+
+        const currentYear = today.getFullYear();
+        if (birthDate.getFullYear() > currentYear) {
+          errors.push("Birth year cannot exceed the current year.");
+        }
       }
 
-      // ❌ Year check
-      const currentYear = today.getFullYear();
-      if (birthDate.getFullYear() > currentYear) {
-        errors.push("Birth year cannot exceed the current year.");
+      if (!applicationData.gender) {
+        errors.push("Gender is required");
+      }
+
+      if (category === "pwd") {
+        if (!applicationData.pwdId) errors.push("PWD ID is required");
+        if (!applicationData.pwdPlaceIssued) errors.push("Place of Issuance is required");
+      }
+
+      if (category === "student") {
+        if (!applicationData.schoolName) errors.push("School Name is required");
+        if (!applicationData.schoolLocation) errors.push("School Address is required");
+        if (!applicationData.idNum) errors.push("Student ID is required");
+        if (!applicationData.schoolYear) {
+          errors.push("Year & Level is required");
+        } else {
+          const expected = `${currentYear} - ${nextYear}`;
+          if (applicationData.schoolYear !== expected) {
+            errors.push(`Year & Level must be ${expected}`);
+          }
+        }
+      }
+
+      if (category === "senior") {
+        if (!applicationData.seniorId) errors.push("Senior ID is required");
+        if (!applicationData.seniorPlaceIssued) errors.push("Place of Issuance is required");
       }
     }
 
-    if (category === "pwd") {
-      if (!applicationData.pwdId) errors.push("PWD ID is required");
-      if (!applicationData.pwdPlaceIssued) errors.push("Place of Issuance is required");
-    }
-
-    if (category === "student") {
-      if (!applicationData.schoolName) errors.push("School Name is required");
-      if (!applicationData.schoolLocation) errors.push("School Address is required");
-      if (!applicationData.idNum) errors.push("Student ID is required");
-      if (!applicationData.schoolYear) {
-  errors.push("Year & Level is required");
-} else {
-  const expected = `${currentYear} - ${nextYear}`;
-  if (applicationData.schoolYear !== expected) {
-    errors.push(`Year & Level must be ${expected}`);
-  }
-}
-    }
-
-    if (category === "senior") {
-      if (!applicationData.seniorId) errors.push("Senior ID is required");
-      if (!applicationData.seniorPlaceIssued) errors.push("Place of Issuance is required");
-    }
-  }
-
-  return errors;
-};
-
+    return errors;
+  };
 
   const handleSubmitWithLoading = async () => {
-    if (isSubmitting) return; // Prevent double submission
+    if (isSubmitting) return;
     
     setIsSubmitting(true);
     try {
@@ -347,12 +346,10 @@ useEffect(() => {
     }
   };
 
-
-
-    const handleSelectType = (type: string) => {
-      setCategory(type.toLowerCase()); // 'student', 'pwd', or 'senior'
-      setStep(3);
-    };
+  const handleSelectType = (type: string) => {
+    setCategory(type.toLowerCase());
+    setStep(3);
+  };
 
   const handleFileSelect = async (fieldName: string, fromCamera: boolean = false) => {
     let permissionResult;
@@ -373,8 +370,6 @@ useEffect(() => {
 
     if (!result.canceled) {
       const uri = result.assets[0].uri;
-
-      // force camelCase key
       const camelKey = toCamelCase(fieldName);
 
       setFiles((prev) => ({
@@ -384,59 +379,53 @@ useEffect(() => {
     }
   };
 
-
   const handleChange = (key: string, value: string) => {
-  setApplicationData((prev) => {
-    let updated = { ...prev, [key]: value };
+    setApplicationData((prev) => {
+      let updated = { ...prev, [key]: value };
 
-    // ✅ Birthdate handling
-    if (key === "birthDate") {
-      const today = new Date();
-      const birthDate = new Date(value);
+      if (key === "birthDate") {
+        const today = new Date();
+        const birthDate = new Date(value);
 
-      if (birthDate > today) {
-        setErrors((prev) => ({
-          ...prev,
-          birthDate: "Birthdate cannot be in the future.",
-        }));
-        updated.age = "";
-      } else {
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-          age--;
+        if (birthDate > today) {
+          setErrors((prev) => ({
+            ...prev,
+            birthDate: "Birthdate cannot be in the future.",
+          }));
+          updated.age = "";
+        } else {
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const m = today.getMonth() - birthDate.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+          }
+          updated.age = age.toString();
+
+          setErrors((prev) => ({ ...prev, birthDate: "" }));
         }
-        updated.age = age.toString();
-
-        setErrors((prev) => ({ ...prev, birthDate: "" }));
       }
-    }
 
-    // ✅ Date of Issuance handling
-    if (key === "dateOfIssuance") {
-      const today = new Date();
-      const issuanceDate = new Date(value);
+      if (key === "dateOfIssuance") {
+        const today = new Date();
+        const issuanceDate = new Date(value);
 
-      if (issuanceDate > today) {
-        setErrors((prev) => ({
-          ...prev,
-          dateOfIssuance: "Date of Issuance cannot be in the future.",
-        }));
-      } else {
-        setErrors((prev) => ({ ...prev, dateOfIssuance: "" }));
+        if (issuanceDate > today) {
+          setErrors((prev) => ({
+            ...prev,
+            dateOfIssuance: "Date of Issuance cannot be in the future.",
+          }));
+        } else {
+          setErrors((prev) => ({ ...prev, dateOfIssuance: "" }));
+        }
       }
+
+      return updated;
+    });
+
+    if (key !== "birthDate" && key !== "dateOfIssuance") {
+      validateField(key, value);
     }
-
-    return updated;
-  });
-
-  // Run validation for other fields
-  if (key !== "birthDate" && key !== "dateOfIssuance") {
-    validateField(key, value);
-  }
-};
-
-
+  };
 
   const pickImage = async (fieldName: string) => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -461,7 +450,7 @@ useEffect(() => {
     }
   };
 
-    const takePhoto = async (fieldName: string) => {
+  const takePhoto = async (fieldName: string) => {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
     if (!permissionResult.granted) {
       Alert.alert('Permission required', 'You need to allow access to camera');
@@ -492,7 +481,7 @@ useEffect(() => {
         userId,
         category,
         data: applicationData,
-        files // ✅ keep files as a nested object
+        files
       });
 
       setStep(6);
@@ -502,812 +491,1042 @@ useEffect(() => {
     }
   };
 
+  const progress = Math.round((step / stepsTotal) * 100);
 
-    const progress = Math.round((step / stepsTotal) * 100);
-
-    function submitApplication(applicationData: any) {
-      throw new Error('Function not implemented.');
-    }
-
-    return (
-      <View className="flex-1 bg-white px-6 pt-12 pb-6">
-        {/* Back Button */}
-        <TouchableOpacity onPress={goBack} className="absolute top-12 left-4 z-10">
-          <FontAwesome5 name="arrow-left" size={20} color="#0A2A54" />
-        </TouchableOpacity>
-
-        {/* Radial Progress */}
-        <View className="items-center mb-6">
-          <AnimatedCircularProgress progress={progress} />
-        </View>
-
-        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
-          <View className="space-y-6">
-          {/* Step 1: Privacy & Terms */}
-  {step === 1 && (
-    <View className="flex-1 items-center">
-      <Text className="text-2xl font-bold text-[#0c2340] mb-4 text-center">
-        Privacy & Terms
-      </Text>
-
-      <ScrollView
-        style={{ maxHeight: 400 }}
-        contentContainerStyle={{ paddingBottom: 20 }}
-        onScroll={(e) => {
-          const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-          const isScrolledToBottom =
-            contentOffset.y + layoutMeasurement.height >= contentSize.height - 10;
-          if (isScrolledToBottom) setHasScrolledToBottom(true);
-        }}
-        scrollEventThrottle={16}
-      >
-      <Text className="text-2xl font-bold mb-1 text-[#0c2340]">Privacy Policy</Text>
-        <Text className="text-gray-500 mb-4">Last updated: August 14, 2025</Text>
-        <Text className="text-gray-700 mb-4">
-          This Privacy Policy describes Our policies and procedures on the collection, use and disclosure
-          of Your information when You use the Service and tells You about Your privacy rightns and how the law protects You.
-          We use Your Personal data to provide and improve the Service. By using the Service, You agree to the collection and
-          use of information in accordance with this Privacy Policy.
-        </Text>
-
-        {/* Section heading */}
-        <Text className="text-xl font-semibold mt-6 mb-2">Interpretation and Definitions</Text>
-        <Text className="text-lg font-semibold mb-1">Interpretation</Text>
-        <Text className="text-gray-700 mb-4">
-          The words of which the initial letter is capitalized have meanings defined under the following
-          conditions. The following definitions shall have the same meaning regardless of whether they
-          appear in singular or in plural.
-        </Text>
-
-        {/* Definitions */}
-        <Text className="text-lg font-semibold mb-1">Definitions</Text>
-        <Text className="text-gray-700 mb-2">For the purposes of this Privacy Policy:</Text>
-        <View className="pl-4 mb-4">
-          <Text className="text-gray-700 mb-1">• <Text className="font-semibold">Account</Text> means a unique account created for You to access our Service or parts of our Service.</Text>
-          <Text className="text-gray-700 mb-1">• <Text className="font-semibold">Affiliate</Text> means an entity that controls, is controlled by or is under common control with a party...</Text>
-          <Text className="text-gray-700 mb-1">• <Text className="font-semibold">Application</Text> refers to RidePay, the software program provided by the Company.</Text>
-          <Text className="text-gray-700">• <Text className="font-semibold">Company</Text> refers to RidePay, Cebu City.</Text>
-          <Text className="text-gray-700">• <Text className="font-semibold">Country</Text> refers to: Philippines.</Text>
-          <Text className="text-gray-700">• <Text className="font-semibold">Device</Text> means any device that can access the Service such as a computer, a cellphone or a digital tablet.</Text>
-          <Text className="text-gray-700">• <Text className="font-semibold">Personal Data</Text> is any information that relates to an identified or identifiable individual.</Text>
-          <Text className="text-gray-700">• <Text className="font-semibold">Service</Text> refers to the Application.</Text>
-          <Text className="text-gray-700">• <Text className="font-semibold">Service Provider</Text> means any natural or legal person who processes the data on behalf of the Company...</Text>
-          <Text className="text-gray-700">• <Text className="font-semibold">Usage Data</Text> refers to data collected automatically...</Text>
-          <Text className="text-gray-700">• <Text className="font-semibold">You</Text> means the individual accessing or using the Service...</Text>
-          {/* Continue the rest of the list in the same pattern */}
-        </View>
-        
-        {/* Section: Collecting and Using Your Personal Data */}
-        <Text className="text-xl font-semibold mt-6 mb-2">Collecting and Using Your Personal Data</Text>
-        <Text className="text-lg font-semibold mb-1">Types of Data Collected</Text>
-
-        <Text className="text-lg font-semibold mt-4 mb-1">Personal Data</Text>
-        <Text className="text-gray-700 mb-2">
-          While using Our Service, We may ask You to provide Us with certain personally identifiable
-          information that can be used to contact or identify You. Personally identifiable information may
-          include, but is not limited to:
-        </Text>
-        <View className="pl-4 mb-4 space-y-1">
-          <Text className="text-gray-700">• Email address</Text>
-          <Text className="text-gray-700">• First name and last name</Text>
-          <Text className="text-gray-700">• Phone number</Text>
-          <Text className="text-gray-700">• Address, State, Province, ZIP/Postal code, City</Text>
-          <Text className="text-gray-700">• Usage Data</Text>
-        </View>
-
-        <Text className="text-lg font-semibold mb-1">Usage Data</Text>
-        <Text className="text-gray-700 mb-4">
-          Usage Data is collected automatically when using the Service. Usage Data may include
-          information such as Your Device's IP address, browser type, browser version, the pages You
-          visit, and other diagnostic data...
-        </Text>
-
-        
-        <Text className="text-lg font-semibold mb-1">Information Collected while Using the Application</Text>
-        <Text className="text-gray-700 mb-2">
-          While using Our Application, in order to provide features of Our Application, We may collect,
-          with Your prior permission:
-        </Text>
-        <View className="pl-4 mb-4 space-y-1">
-          <Text className="text-gray-700">• Information regarding your location</Text>
-          <Text className="text-gray-700">• Information from your Device's phone book (contacts list)</Text>
-          <Text className="text-gray-700">• Pictures and other information from your Device's camera and photo library</Text>
-        </View>
-
-        {/* Section: Use of Your Personal Data */}
-        <Text className="text-lg font-semibold mt-6 mb-1">Use of Your Personal Data</Text>
-        <Text className="text-gray-700 mb-2">The Company may use Personal Data for the following purposes:</Text>
-        <View className="pl-4 mb-4 space-y-1">
-          <Text className="text-gray-700">• <Text className="font-semibold">To provide and maintain our Service</Text>, including monitoring usage.</Text>
-          <Text className="text-gray-700">• <Text className="font-semibold">To manage Your Account</Text>: registration and account features.</Text>
-          <Text className="text-gray-700">• <Text className="font-semibold">For the performance of a contract</Text>: processing purchases and agreements.</Text>
-          <Text className="text-gray-700">• <Text className="font-semibold">To contact You</Text>: via email, calls, SMS, or push notifications.</Text>
-          <Text className="text-gray-700">• <Text className="font-semibold">To provide You</Text> with news, offers, and updates.</Text>
-          <Text className="text-gray-700">• <Text className="font-semibold">To manage Your requests</Text>.</Text>
-          <Text className="text-gray-700">• <Text className="font-semibold">For business transfers</Text>.</Text>
-          <Text className="text-gray-700">• <Text className="font-semibold">For other purposes</Text>: analytics, trends, and improvements.</Text>
-        </View>
-
-        {/* Section: Retention */}
-        <Text className="text-lg font-semibold mt-6 mb-1">Retention of Your Personal Data</Text>
-        <Text className="text-gray-700 mb-4">
-          The Company will retain Your Personal Data only for as long as necessary...
-        </Text>
-
-        {/* Section: Transfer */}
-        <Text className="text-lg font-semibold mb-1">Transfer of Your Personal Data</Text>
-        <Text className="text-gray-700 mb-4">
-          Your information may be transferred and maintained outside your jurisdiction...
-        </Text>
-
-        {/* Section: Delete */}
-        <Text className="text-lg font-semibold mb-1">Delete Your Personal Data</Text>
-        <Text className="text-gray-700 mb-4">
-          You have the right to delete or request deletion of your personal data...
-        </Text>
-
-        {/* Section: Disclosure */}
-        <Text className="text-lg font-semibold mb-1">Disclosure of Your Personal Data</Text>
-        <Text className="text-gray-700 mb-4">Includes business transactions, law enforcement, and legal requirements...</Text>
-
-        {/* Section: Security */}
-        <Text className="text-lg font-semibold mb-1">Security of Your Personal Data</Text>
-        <Text className="text-gray-700 mb-4">While we strive to protect your data, no method is 100% secure...</Text>
-
-        {/* Section: Children's Privacy */}
-        <Text className="text-xl font-semibold mt-6 mb-2">Children's Privacy</Text>
-        <Text className="text-gray-700 mb-4">
-          We do not knowingly collect data from anyone under 13...
-        </Text>
-
-        {/* Section: Links */}
-        <Text className="text-xl font-semibold mt-6 mb-2">Links to Other Websites</Text>
-        <Text className="text-gray-700 mb-4">
-          Our Service may contain links to other websites...
-        </Text>
-
-        {/* Section: Changes */}
-        <Text className="text-xl font-semibold mt-6 mb-2">Changes to this Privacy Policy</Text>
-        <Text className="text-gray-700 mb-4">
-          We may update this Privacy Policy from time to time...
-        </Text>
-
-        {/* Section: Contact */}
-        <Text className="text-xl font-semibold mt-6 mb-2">Contact Us</Text>
-        <View className="pl-4 mb-8">
-          <Text
-            className="text-blue-500 underline"
-            onPress={() => Linking.openURL('mailto:ridepaymobile@gmail.com')}
-          >
-            ridepaymobile@gmail.com
-          </Text>
-        </View>
-        
-      </ScrollView>
-
-      {/* Continue Button */}
-      <TouchableOpacity
-    disabled={!hasScrolledToBottom || isSubmitting}
-    onPress={goNext}
-    activeOpacity={0.7}
-    className={`py-3 px-6 rounded-full w-full max-w-xs items-center ${
-      hasScrolledToBottom && !isSubmitting ? 'bg-[#0c2340]' : 'bg-gray-400'
-    }`}
-  >
-    <Text className="text-white font-semibold">
-      {hasScrolledToBottom ? 'Agree & Continue' : 'Scroll to Read All'}
-    </Text>
-  </TouchableOpacity>
-    </View>
-  )}
-
-            {step === 2 && (
-    <View className="items-center w-full px-4">
-      <Text className="text-2xl font-bold text-[#0c2340] mb-6 text-center">
-        Select Discount Type
-      </Text>
-
-      {[
-        {
-          type: 'student',
-          label: 'Student Discount',
-          desc: 'For enrolled students with valid school ID',
-          icon: 'graduation-cap',
-          color: '#2563EB',
-        },
-        {
-          type: 'pwd',
-          label: 'PWD Discount',
-          desc: 'For persons with disabilities with valid PWD ID',
-          icon: 'wheelchair',
-          color: '#D97706',
-        },
-        {
-          type: 'senior',
-          label: 'Senior Citizen Discount',
-          desc: 'For senior citizens with valid senior ID',
-          icon: 'id-card',
-          color: '#059669',
-        },
-      ].map((item) => (
-        <TouchableOpacity
-          key={item.type}
-          onPress={() => handleSelectType(item.type)}
-          className="bg-white w-full max-w-sm p-5 rounded-2xl mb-4 shadow-md flex-row items-center"
-          activeOpacity={0.85}
+  return (
+    <View style={{ flex: 1, backgroundColor: '#ffffff' }}>
+      {/* Header */}
+      <View style={{ paddingTop: 60, paddingHorizontal: 24, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+        <TouchableOpacity 
+          onPress={goBack} 
+          style={{ position: 'absolute', left: 24, top: 60, zIndex: 10, padding: 8 }}
         >
-          <View
-            className="w-14 h-14 rounded-full items-center justify-center mr-4"
-            style={{ backgroundColor: item.color + '20' }}
-          >
-            <FontAwesome5 name={item.icon as any} size={22} color={item.color} />
-          </View>
-          <View className="flex-1">
-            <Text className="text-lg font-semibold text-[#0c2340]">{item.label}</Text>
-            <Text className="text-gray-500 text-sm">{item.desc}</Text>
-          </View>
+          <FontAwesome5 name="arrow-left" size={20} color="#6B7280" />
         </TouchableOpacity>
-      ))}
-    </View>
-  )}
 
-            {/* Step 3: Application Form */}
-        {step === 3 && (
-          <KeyboardAvoidingView
-    style={{ flex: 1 }}
-    behavior={Platform.OS === "ios" ? "padding" : undefined}
-    keyboardVerticalOffset={100} // adjust if needed for header/navbar
-  >
-    <KeyboardAwareScrollView
-      enableOnAndroid
-      extraScrollHeight={20} // pushes up a bit when focused
-      keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ paddingBottom: 40 }}
-    >
-    <View className="items-center w-full px-4">
-      <Text className="text-xl font-bold text-[#0c2340] mb-4 text-center">
-        Fill Out Your Details
-      </Text>
+        <Text style={{ fontSize: 20, fontWeight: '600', color: '#111827', textAlign: 'center', marginBottom: 16 }}>
+          Discount Application
+        </Text>
 
-      {/* Common Fields */}
-      <View className="w-full max-w-sm mb-4">
-        {/* First Name */}
-        <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2">
-          <FontAwesome5 name="user" size={16} color="#6B7280" style={{ marginRight: 8 }} />
-          <TextInput
-            placeholder="First Name"
-            placeholderTextColor="#9CA3AF"
-            onChangeText={(v) => handleChange("firstName", v)}
-            className="flex-1 text-gray-800 text-sm"
+        {/* Simple Progress Bar */}
+        <View style={{ height: 4, backgroundColor: '#F3F4F6', borderRadius: 2 }}>
+          <View 
+            style={{ 
+              height: 4, 
+              backgroundColor: '#111827', 
+              borderRadius: 2, 
+              width: `${progress}%` 
+            }} 
           />
         </View>
-
-        {/* Last Name */}
-        <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2">
-          <FontAwesome5 name="user" size={16} color="#6B7280" style={{ marginRight: 8 }} />
-          <TextInput
-            placeholder="Last Name"
-            placeholderTextColor="#9CA3AF"
-            onChangeText={(v) => handleChange("lastName", v)}
-            className="flex-1 text-gray-800 text-sm"
-          />
-        </View>
-
-        {/* Middle Name */}
-        <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2">
-          <FontAwesome5 name="user" size={16} color="#6B7280" style={{ marginRight: 8 }} />
-          <TextInput
-            placeholder="Middle Name"
-            placeholderTextColor="#9CA3AF"
-            onChangeText={(v) => handleChange("middleName", v)}
-            className="flex-1 text-gray-800 text-sm"
-          />
-        </View>
-
-  {/* Birthdate Picker */}
-    <TouchableOpacity
-      onPress={() => setShowBirthdatePicker(true)}
-      className="flex-row items-center bg-gray-50 px-3 py-3 rounded-xl shadow-sm mb-2"
-    >
-      <FontAwesome5 name="calendar" size={16} color="#6B7280" style={{ marginRight: 8 }} />
-      <Text className="flex-1 text-gray-800 text-sm">
-        {applicationData.birthDate
-          ? new Date(applicationData.birthDate).toLocaleDateString()
-          : "Birthdate"}
-      </Text>
-    </TouchableOpacity>
-    {errors.birthDate ? (
-  <Text className="text-red-500 text-xs mt-1">{errors.birthDate}</Text>
-) : null}
-
-  {showBirthdatePicker && (
-    <DateTimePicker
-      value={applicationData.birthDate ? new Date(applicationData.birthDate) : new Date()}
-      mode="date"
-      display="default"
-      onChange={(event: any, selectedDate?: Date) => {
-        setShowBirthdatePicker(false);
-        if (selectedDate) {
-          const formatted = selectedDate.toISOString().split("T")[0];
-          handleChange("birthDate", formatted);
-        }
-      }}
-    />
-  )}
-
-        {/* Auto Age Display */}
-        <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2">
-          <FontAwesome5 name="birthday-cake" size={16} color="#6B7280" style={{ marginRight: 8 }} />
-          <Text className="flex-1 text-gray-800 text-sm">
-            {applicationData.age ? `${applicationData.age} years old` : "Age will appear here"}
-          </Text>
-        </View>
-
-        
-      {/* Gender */}
-  <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2">
-    <FontAwesome5 name="venus-mars" size={16} color="#6B7280" style={{ marginRight: 8 }} />
-    
-    <Picker
-      selectedValue={applicationData.gender || ""}
-      style={{ flex: 1, color: "#374151" }} // gray-700
-      onValueChange={(value) => handleChange("gender", value)}
-    >
-      <Picker.Item label="Select Gender" value="" />
-      <Picker.Item label="Male" value="Male" />
-      <Picker.Item label="Female" value="Female" />
-      <Picker.Item label="Other" value="Other" />
-    </Picker>
-  </View>
-
-
-        {/* Contact Number */}
-<View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2">
-  <FontAwesome5 name="phone" size={16} color="#6B7280" style={{ marginRight: 8 }} />
-  <TextInput
-    placeholder="Contact Number"
-    keyboardType="phone-pad"
-    placeholderTextColor="#9CA3AF"
-    value={applicationData.contactNumber || ""}   // ✅ auto-filled
-    editable={false}  // 🔒 make read-only
-    className="flex-1 text-gray-800 text-sm"
-  />
-</View>
-
-{/* Email */}
-<View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm mb-2">
-  <FontAwesome5 name="envelope" size={16} color="#6B7280" style={{ marginRight: 8 }} />
-  <TextInput
-    placeholder="Email"
-    keyboardType="email-address"
-    placeholderTextColor="#9CA3AF"
-    value={applicationData.email || ""}   // ✅ auto-filled
-    editable={false}  // 🔒 make read-only
-    className="flex-1 text-gray-800 text-sm"
-  />
-</View>
-
+        <Text style={{ fontSize: 12, color: '#6B7280', textAlign: 'center', marginTop: 8 }}>
+          Step {step} of {stepsTotal}
+        </Text>
       </View>
 
-      
-      {/* Student Extra Fields */}
-{category === "student" && (
-  <View className="w-full max-w-sm mb-4">
-    {[
-      { placeholder: "School Name", key: "schoolName", icon: "school", editable: true },
-      { placeholder: "School Address", key: "schoolLocation", icon: "map-marker-alt", editable: true },
-      { placeholder: "Student #ID", key: "idNum", icon: "id-card", editable: true,  },
-      { placeholder: "Year & Level", key: "schoolYear", icon: "graduation-cap", editable: false }, // auto-filled
-    ].map((field, idx) => (
-      <View key={idx} className="mb-2">
-        <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm">
-          <FontAwesome5 name={field.icon as any} size={16} color="#6B7280" style={{ marginRight: 8 }} />
-          <TextInput
-  placeholder={field.placeholder}
-  placeholderTextColor="#9CA3AF"
-  value={applicationData[field.key] || ""}
-  onChangeText={(v) =>
-    handleChange(
-      field.key,
-      field.key === "idNum" ? v.replace(/[^0-9]/g, "") : v
-    )
-  }
-  editable={field.editable}
-  keyboardType={field.key === "idNum" ? "numeric" : "default"} // ✅ digits only for Student ID
-  className="flex-1 text-gray-800 text-sm"
-/>
-        </View>
-        {errors[field.key] ? (
-          <Text className="text-red-500 text-xs mt-1">{errors[field.key]}</Text>
-        ) : null}
-      </View>
-    ))}
-  </View>
-)}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 32 }}>
+        {/* Step 1: Privacy & Terms */}
+        {step === 1 && (
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 16, textAlign: 'center' }}>
+              Privacy & Terms
+            </Text>
 
-      {/* PWD Extra Fields */}
-      {category === 'pwd' && (
-  <View className="w-full max-w-sm mb-4">
-    {[
-      { placeholder: "PWD ID #", key: "pwdId", icon: "id-card" },
-      { placeholder: "Place of Issuance", key: "pwdPlaceIssued", icon: "map-marker-alt" },
-    ].map((field, idx) => (
-      <View key={idx} className="mb-3">
-        
-        {/* Input container */}
-        <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm">
-          <FontAwesome5
-            name={field.icon as any}
-            size={16}
-            color="#6B7280"
-            style={{ marginRight: 8 }}
-          />
-          <TextInput
-            placeholder={field.placeholder}
-            placeholderTextColor="#9CA3AF"
-            value={applicationData[field.key] || ""}
-            onChangeText={(v) =>
-              handleChange(
-                field.key,
-                field.key === "pwdId" ? v.replace(/[^0-9]/g, "") : v
-              )
-            }
-            editable={field.editable}
-            keyboardType={field.key === "pwdId" ? "numeric" : "default"}
-            className="flex-1 text-gray-800 text-sm"
-          />
-        </View>
-        {errors[field.key] ? (
-          <Text className="text-red-500 text-xs mt-1">{errors[field.key]}</Text>
-        ) : null}
-            </View> 
-          ))}
+            <ScrollView
+              style={{ maxHeight: 400, backgroundColor: '#F9FAFB', borderRadius: 8, padding: 16 }}
+              contentContainerStyle={{ paddingBottom: 20 }}
+              onScroll={(e) => {
+                const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+                const isScrolledToBottom =
+                  contentOffset.y + layoutMeasurement.height >= contentSize.height - 10;
+                if (isScrolledToBottom) setHasScrolledToBottom(true);
+              }}
+              scrollEventThrottle={16}
+            >
+              <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: '#111827' }}>Privacy Policy</Text>
+              <Text style={{ color: '#6B7280', marginBottom: 16, fontSize: 14 }}>Last updated: August 14, 2025</Text>
+              <Text style={{ color: '#374151', marginBottom: 16, lineHeight: 22 }}>
+                This Privacy Policy describes Our policies and procedures on the collection, use and disclosure
+                of Your information when You use the Service and tells You about Your privacy rights and how the law protects You.
+                We use Your Personal data to provide and improve the Service. By using the Service, You agree to the collection and
+                use of information in accordance with this Privacy Policy.
+              </Text>
 
-          {/* Date of Issuance */}
-          <TouchableOpacity
-    onPress={() => setShowPwdDatePicker(true)}
-    className="flex-row items-center bg-gray-50 px-3 py-3 rounded-xl shadow-sm mb-2"
-  >
-    <FontAwesome5 name="calendar" size={16} color="#6B7280" style={{ marginRight: 8 }} />
-    <Text className="flex-1 text-gray-800 text-sm">
-      {applicationData.pwdDateIssued
-        ? new Date(applicationData.pwdDateIssued).toLocaleDateString()
-        : "Date of Issuance"}
-    </Text>
-  </TouchableOpacity>
+              <Text style={{ fontSize: 16, fontWeight: '600', marginTop: 24, marginBottom: 12, color: '#111827' }}>Interpretation and Definitions</Text>
+              <Text style={{ color: '#374151', marginBottom: 12, lineHeight: 22 }}>
+                The words of which the initial letter is capitalized have meanings defined under the following
+                conditions. The following definitions shall have the same meaning regardless of whether they
+                appear in singular or in plural.
+              </Text>
 
-  {showPwdDatePicker && (
-    <DateTimePicker
-      value={applicationData.pwdDateIssued ? new Date(applicationData.pwdDateIssued) : new Date()}
-      mode="date"
-      display="default"
-      onChange={(event: any, selectedDate?: Date) => {
-        setShowPwdDatePicker(false);
-        if (selectedDate) {
-          const formatted = selectedDate.toISOString().split("T")[0];
-          handleChange("pwdDateIssued", formatted);
-          validateField("pwdDateIssued", formatted);
-        }
-        {errors.pwdDateIssued ? (
-  <Text className="text-red-500 text-xs mt-1">{errors.pwdDateIssued}</Text>
-) : null}
-      }}
-      
-    />
-  )}
-        </View>  
-      )}
-
-      {/* Senior Extra Fields */}
-     {category === 'senior' && (
-  <View className="w-full max-w-sm mb-4">
-    {[
-      { placeholder: "Senior ID #", key: "seniorId", icon: "id-card" },
-      { placeholder: "Place of Issuance", key: "seniorPlaceIssued", icon: "map-marker-alt" },
-    ].map((field, idx) => (
-      <View key={idx} className="mb-3">
-        
-        {/* Input container */}
-        <View className="flex-row items-center bg-gray-50 px-3 py-2 rounded-xl shadow-sm">
-          <FontAwesome5
-            name={field.icon as any}
-            size={16}
-            color="#6B7280"
-            style={{ marginRight: 8 }}
-          />
-          <TextInput
-            placeholder={field.placeholder}
-            placeholderTextColor="#9CA3AF"
-            value={applicationData[field.key] || ""}
-            onChangeText={(v) =>
-              handleChange(
-                field.key,
-                field.key === "seniorId" ? v.replace(/[^0-9]/g, "") : v
-              )
-            }
-            editable={field.editable}
-            keyboardType={field.key === "seniorId" ? "numeric" : "default"} 
-            className="flex-1 text-gray-800 text-sm"
-          />
-        </View>
-          {errors[field.key] ? (
-          <Text className="text-red-500 text-xs mt-1">{errors[field.key]}</Text>
-        ) : null}
-            </View>
-          ))}
-
-          {/* Date of Issuance */}
-          <TouchableOpacity
-    onPress={() => setShowSeniorDatePicker(true)}
-    className="flex-row items-center bg-gray-50 px-3 py-3 rounded-xl shadow-sm mb-2"
-  >
-    <FontAwesome5 name="calendar" size={16} color="#6B7280" style={{ marginRight: 8 }} />
-    <Text className="flex-1 text-gray-800 text-sm">
-      {applicationData.seniorDateIssued
-        ? new Date(applicationData.seniorDateIssued).toLocaleDateString()
-        : "Date of Issuance"}
-    </Text>
-  </TouchableOpacity>
-
-  {showSeniorDatePicker && (
-    <DateTimePicker
-      value={applicationData.seniorDateIssued ? new Date(applicationData.seniorDateIssued) : new Date()}
-      mode="date"
-      display="default"
-      onChange={(event: any, selectedDate?: Date) => {
-        setShowSeniorDatePicker(false);
-        if (selectedDate) {
-          const formatted = selectedDate.toISOString().split("T")[0];
-          handleChange("seniorDateIssued", formatted);
-          validateField("seniorDateIssued", formatted);
-        }
-        {errors.pwdDateIssued ? (
-  <Text className="text-red-500 text-xs mt-1">{errors.pwdDateIssued}</Text>
-) : null}
-      }}
-    />
-  )}
-
-        </View>
-      )}
-      
-
-
-      {/* Buttons */}
-      <View className="flex-row w-full max-w-sm justify-between mt-2">
-    <TouchableOpacity
-      onPress={goBack}
-      disabled={isSubmitting}
-      activeOpacity={0.7}
-      className={`flex-1 py-2 mr-2 border border-gray-300 rounded-full items-center ${
-        isSubmitting ? 'opacity-50' : ''
-      }`}
-    >
-      <Text className="text-gray-700 font-medium text-sm">Back</Text>
-    </TouchableOpacity>
-    <TouchableOpacity
-      onPress={goNext}
-      disabled={isSubmitting}
-      activeOpacity={0.7}
-      className={`flex-1 py-2 ml-2 bg-[#0c2340] rounded-full items-center shadow-md ${
-        isSubmitting ? 'opacity-50' : ''
-      }`}
-    >
-      {isSubmitting ? (
-        <ActivityIndicator size="small" color="white" />
-      ) : (
-        <Text className="text-white font-semibold text-sm">Next</Text>
-      )}
-    </TouchableOpacity>
-  </View>
-    </View>
-    </KeyboardAwareScrollView>
-  </KeyboardAvoidingView>
-  )}
-
-  {/* STEP 4 – File Upload */}
-  {step === 4 && (
-    <View className="items-center w-full px-4">
-      <Text className="text-xl font-bold text-[#0c2340] mb-4 text-center">
-        Upload Required Documents
-      </Text>
-
-      {fileRequirements[category]?.map((label, index) => {
-        const camelKey = toCamelCase(label);
-
-        return (
-          <View key={index} className="w-full mb-6">
-            <Text className="text-sm font-medium text-gray-700 mb-2">{label}</Text>
-
-            {/* Preview uploaded file */}
-            {files[camelKey]?.uri ? (
-              <Image
-                source={{ uri: files[camelKey].uri }}
-                className="w-full h-40 rounded-lg mb-3"
-                resizeMode="cover"
-              />
-            ) : (
-              <View className="w-full h-40 border border-dashed border-gray-400 rounded-lg flex items-center justify-center mb-3">
-                <Text className="text-gray-400 text-sm">No file selected</Text>
+              <Text style={{ fontSize: 14, fontWeight: '600', marginBottom: 8, color: '#111827' }}>Definitions</Text>
+              <Text style={{ color: '#374151', marginBottom: 12 }}>For the purposes of this Privacy Policy:</Text>
+              
+              <View style={{ paddingLeft: 16, gap: 8 }}>
+                <Text style={{ color: '#374151', lineHeight: 20 }}>• Account means a unique account created for You to access our Service</Text>
+                <Text style={{ color: '#374151', lineHeight: 20 }}>• Application refers to RidePay, the software program provided by the Company</Text>
+                <Text style={{ color: '#374151', lineHeight: 20 }}>• Company refers to RidePay, Cebu City</Text>
+                <Text style={{ color: '#374151', lineHeight: 20 }}>• Country refers to: Philippines</Text>
+                <Text style={{ color: '#374151', lineHeight: 20 }}>• Personal Data is any information that relates to an identified or identifiable individual</Text>
+                <Text style={{ color: '#374151', lineHeight: 20 }}>• Service refers to the Application</Text>
               </View>
-            )}
 
-            {/* Buttons */}
+              <Text style={{ fontSize: 16, fontWeight: '600', marginTop: 24, marginBottom: 12, color: '#111827' }}>Data Collection</Text>
+              <Text style={{ color: '#374151', marginBottom: 12, lineHeight: 22 }}>
+                While using Our Service, We may ask You to provide Us with certain personally identifiable
+                information that can be used to contact or identify You, including:
+              </Text>
+              
+              <View style={{ paddingLeft: 16, gap: 6 }}>
+                <Text style={{ color: '#374151' }}>• Email address</Text>
+                <Text style={{ color: '#374151' }}>• First name and last name</Text>
+                <Text style={{ color: '#374151' }}>• Phone number</Text>
+                <Text style={{ color: '#374151' }}>• Address information</Text>
+                <Text style={{ color: '#374151' }}>• Usage data</Text>
+              </View>
+
+              <Text style={{ fontSize: 16, fontWeight: '600', marginTop: 24, marginBottom: 12, color: '#111827' }}>Contact Us</Text>
+              <TouchableOpacity onPress={() => Linking.openURL('mailto:ridepaymobile@gmail.com')}>
+                <Text style={{ color: '#2563EB' }}>ridepaymobile@gmail.com</Text>
+              </TouchableOpacity>
+            </ScrollView>
+
             <TouchableOpacity
-              onPress={() => takePhoto(label)}
-              className="bg-yellow-500 p-3 rounded-lg mb-2"
+              disabled={!hasScrolledToBottom || isSubmitting}
+              onPress={goNext}
+              style={{
+                marginTop: 24,
+                paddingVertical: 16,
+                borderRadius: 8,
+                alignItems: 'center',
+                backgroundColor: hasScrolledToBottom && !isSubmitting ? '#111827' : '#D1D5DB'
+              }}
             >
-              <Text className="text-white text-center">📷 Take Photo</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => pickImage(label)}
-              className="bg-blue-500 p-3 rounded-lg"
-            >
-              <Text className="text-white text-center">📂 Upload from Gallery</Text>
+              <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
+                {hasScrolledToBottom ? 'Agree & Continue' : 'Scroll to Read All'}
+              </Text>
             </TouchableOpacity>
           </View>
-        );
-      })}
+        )}
 
-      {/* Navigation Buttons */}
-      <View className="flex-row justify-between w-full mt-4">
-    <TouchableOpacity
-      onPress={goBack}
-      disabled={isSubmitting}
-      activeOpacity={0.7}
-      className={`bg-gray-400 p-3 rounded-lg flex-1 mr-2 ${
-        isSubmitting ? 'opacity-50' : ''
-      }`}
-    >
-      <Text className="text-white text-center font-semibold">Back</Text>
-    </TouchableOpacity>
+        {/* Step 2: Select Discount Type */}
+        {step === 2 && (
+          <View>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 32, textAlign: 'center' }}>
+              Select Discount Type
+            </Text>
 
-    <TouchableOpacity
-      onPress={goNext}
-      disabled={isSubmitting}
-      activeOpacity={0.7}
-      className={`bg-green-600 p-3 rounded-lg flex-1 ml-2 ${
-        isSubmitting ? 'opacity-50' : ''
-      }`}
-    >
-      {isSubmitting ? (
-        <ActivityIndicator size="small" color="white" />
-      ) : (
-        <Text className="text-white text-center font-semibold">Next</Text>
-      )}
-    </TouchableOpacity>
-  </View>
-    </View>
-  )}
-
-
-            {/* STEP 5 – Review Information */}
-  {step === 5 && (
-    <View className="items-center w-full px-4">
-      <Text className="text-xl font-bold text-[#0c2340] mb-4 text-center">
-        Review Your Information
-      </Text>
-
-      {/* Common Fields */}
-      <View className="w-full mb-3">
-        <Text className="text-gray-700 font-medium">First Name:</Text>
-        <Text className="text-gray-900">{applicationData.firstName}</Text>
-      </View>
-      <View className="w-full mb-3">
-        <Text className="text-gray-700 font-medium">Middle Name:</Text>
-        <Text className="text-gray-900">{applicationData.middleName}</Text>
-      </View>
-      <View className="w-full mb-3">
-        <Text className="text-gray-700 font-medium">Last Name:</Text>
-        <Text className="text-gray-900">{applicationData.lastName}</Text>
-      </View>
-      <View className="w-full mb-3">
-        <Text className="text-gray-700 font-medium">Contact Number:</Text>
-        <Text className="text-gray-900">{applicationData.contactNumber}</Text>
-      </View>
-      <View className="w-full mb-3">
-        <Text className="text-gray-700 font-medium">Email:</Text>
-        <Text className="text-gray-900">{applicationData.email}</Text>
-      </View>
-      <View className="w-full mb-3">
-        <Text className="text-gray-700 font-medium">Birthdate:</Text>
-        <Text className="text-gray-900">{applicationData.birthDate}</Text>
-      </View>
-      <View className="w-full mb-3">
-        <Text className="text-gray-700 font-medium">Age:</Text>
-        <Text className="text-gray-900">{applicationData.age}</Text>
-      </View>
-    
-
-      {/* Student-Specific Fields */}
-      {category === "student" && (
-        <>
-          <View className="w-full mb-3">
-            <Text className="text-gray-700 font-medium">School Name:</Text>
-            <Text className="text-gray-900">{applicationData.schoolName}</Text>
-          </View>
-          <View className="w-full mb-3">
-            <Text className="text-gray-700 font-medium">School Address:</Text>
-            <Text className="text-gray-900">{applicationData.schoolLocation}</Text>
-          </View>
-          <View className="w-full mb-3">
-            <Text className="text-gray-700 font-medium">Student ID:</Text>
-            <Text className="text-gray-900">{applicationData.idNum}</Text>
-          </View>
-          <View className="w-full mb-3">
-            <Text className="text-gray-700 font-medium">Grade/Year Level:</Text>
-            <Text className="text-gray-900">{applicationData.schoolYear}</Text>
-          </View>
-        </>
-      )}
-
-      {/* File Preview */}
-      {fileRequirements[category]?.map((label, index) => {
-        const camelKey = toCamelCase(label);
-        return (
-          <View key={index} className="w-full mb-3">
-            <Text className="text-gray-700 font-medium">{label}:</Text>
-            {files[camelKey]?.uri ? (
-              <Image
-                source={{ uri: files[camelKey].uri }}
-                className="w-full h-40 rounded-lg mt-2"
-                resizeMode="cover"
-              />
-            ) : (
-              <Text className="text-gray-500 text-sm">No file uploaded</Text>
-            )}
-          </View>
-        );
-      })}
-
-      {/* Navigation Buttons */}
-    <View className="flex-row justify-between w-full mt-4">
-    <TouchableOpacity
-      onPress={goBack}
-      disabled={isSubmitting}
-      activeOpacity={0.7}
-      className={`bg-gray-400 p-3 rounded-lg flex-1 mr-2 ${
-        isSubmitting ? 'opacity-50' : ''
-      }`}
-    >
-      <Text className="text-white text-center font-semibold">Back</Text>
-    </TouchableOpacity>
-
-    <TouchableOpacity
-      onPress={handleSubmitWithLoading}
-      disabled={isSubmitting}
-      activeOpacity={0.7}
-      className={`bg-green-600 p-3 rounded-lg flex-1 ml-2 ${
-        isSubmitting ? 'opacity-50' : ''
-      }`}
-    >
-      {isSubmitting ? (
-        <ActivityIndicator size="small" color="white" />
-      ) : (
-        <Text className="text-white text-center font-semibold">Submit</Text>
-      )}
-    </TouchableOpacity>
-  </View>
-
-    </View>
-  )}
-
-
-            {/* Step 6: Success */}
-            {step === 6 && (
-              <View className="items-center">
-                <Text className="text-2xl font-bold text-green-600 mb-4 text-center">Successfully Submitted!</Text>
+            <View style={{ gap: 16 }}>
+              {[
+                {
+                  type: 'student',
+                  label: 'Student Discount',
+                  desc: 'For enrolled students with valid school ID',
+                  icon: 'graduation-cap',
+                },
+                {
+                  type: 'pwd',
+                  label: 'PWD Discount',
+                  desc: 'For persons with disabilities with valid PWD ID',
+                  icon: 'wheelchair',
+                },
+                {
+                  type: 'senior',
+                  label: 'Senior Citizen Discount',
+                  desc: 'For senior citizens with valid senior ID',
+                  icon: 'id-card',
+                },
+              ].map((item) => (
                 <TouchableOpacity
-                  onPress={() => router.replace('/(tabs)/home')}
-                  className="bg-[#0c2340] py-3 px-6 rounded-full w-full max-w-xs items-center"
+                  key={item.type}
+                  onPress={() => handleSelectType(item.type)}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                    borderRadius: 12,
+                    padding: 20,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: 'white'
+                  }}
                 >
-                  <Text className="text-white font-semibold text-lg">Go Back Home</Text>
+                  <View
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 24,
+                      backgroundColor: '#F3F4F6',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginRight: 16
+                    }}
+                  >
+                    <FontAwesome5 name={item.icon as any} size={20} color="#374151" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827', marginBottom: 4 }}>{item.label}</Text>
+                    <Text style={{ color: '#6B7280', fontSize: 14 }}>{item.desc}</Text>
+                  </View>
+                  <FontAwesome5 name="chevron-right" size={16} color="#9CA3AF" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Step 3: Application Form */}
+        {step === 3 && (
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+            <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={20} keyboardShouldPersistTaps="handled">
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 32, textAlign: 'center' }}>
+                Personal Details
+              </Text>
+
+              <View style={{ gap: 16 }}>
+                {/* Name Fields */}
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>First Name</Text>
+                  <View style={{ 
+                    borderWidth: 1, 
+                    borderColor: '#E5E7EB', 
+                    borderRadius: 8, 
+                    paddingHorizontal: 16, 
+                    paddingVertical: 12,
+                    backgroundColor: '#F9FAFB'
+                  }}>
+                    <Text style={{ color: '#6B7280', fontSize: 16 }}>{applicationData.firstName || 'Not available'}</Text>
+                  </View>
+                </View>
+
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>Last Name</Text>
+                  <View style={{ 
+                    borderWidth: 1, 
+                    borderColor: '#E5E7EB', 
+                    borderRadius: 8, 
+                    paddingHorizontal: 16, 
+                    paddingVertical: 12,
+                    backgroundColor: '#F9FAFB'
+                  }}>
+                    <Text style={{ color: '#6B7280', fontSize: 16 }}>{applicationData.lastName || 'Not available'}</Text>
+                  </View>
+                </View>
+
+                {applicationData.middleName && (
+                  <View>
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>Middle Name</Text>
+                    <View style={{ 
+                      borderWidth: 1, 
+                      borderColor: '#E5E7EB', 
+                      borderRadius: 8, 
+                      paddingHorizontal: 16, 
+                      paddingVertical: 12,
+                      backgroundColor: '#F9FAFB'
+                    }}>
+                      <Text style={{ color: '#6B7280', fontSize: 16 }}>{applicationData.middleName}</Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Birthdate */}
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>Birthdate</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowBirthdatePicker(true)}
+                    style={{
+                      borderWidth: 1,
+                      borderColor: errors.birthDate ? '#EF4444' : '#E5E7EB',
+                      borderRadius: 8,
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      backgroundColor: 'white'
+                    }}
+                  >
+                    <Text style={{ color: applicationData.birthDate ? '#111827' : '#9CA3AF', fontSize: 16 }}>
+                      {applicationData.birthDate
+                        ? new Date(applicationData.birthDate).toLocaleDateString()
+                        : "Select your birthdate"}
+                    </Text>
+                  </TouchableOpacity>
+                  {errors.birthDate && <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors.birthDate}</Text>}
+                </View>
+
+                {showBirthdatePicker && (
+                  <DateTimePicker
+                    value={applicationData.birthDate ? new Date(applicationData.birthDate) : new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(event: any, selectedDate?: Date) => {
+                      setShowBirthdatePicker(false);
+                      if (selectedDate) {
+                        const formatted = selectedDate.toISOString().split("T")[0];
+                        handleChange("birthDate", formatted);
+                      }
+                    }}
+                  />
+                )}
+
+                {/* Age Display */}
+                {applicationData.age && (
+                  <View>
+                    <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>Age</Text>
+                    <View style={{ 
+                      borderWidth: 1, 
+                      borderColor: '#E5E7EB', 
+                      borderRadius: 8, 
+                      paddingHorizontal: 16, 
+                      paddingVertical: 12,
+                      backgroundColor: '#F9FAFB'
+                    }}>
+                      <Text style={{ color: '#6B7280', fontSize: 16 }}>{applicationData.age} years old</Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Gender */}
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>Gender</Text>
+                  <View style={{
+                    borderWidth: 1,
+                    borderColor: errors.gender ? '#EF4444' : '#E5E7EB',
+                    borderRadius: 8,
+                    backgroundColor: 'white',
+                    overflow: 'hidden'
+                  }}>
+                    <Picker
+                      selectedValue={applicationData.gender || ""}
+                      style={{ color: '#111827' }}
+                      onValueChange={(value) => {
+                        handleChange("gender", value);
+                        validateField("gender", value);
+                      }}
+                    >
+                      <Picker.Item label="Select Gender" value="" />
+                      <Picker.Item label="Male" value="Male" />
+                      <Picker.Item label="Female" value="Female" />
+                      <Picker.Item label="Other" value="Other" />
+                    </Picker>
+                  </View>
+                  {errors.gender && <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors.gender}</Text>}
+                </View>
+
+                {/* Contact Information */}
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>Contact Number</Text>
+                  <View style={{ 
+                    borderWidth: 1, 
+                    borderColor: '#E5E7EB', 
+                    borderRadius: 8, 
+                    paddingHorizontal: 16, 
+                    paddingVertical: 12,
+                    backgroundColor: '#F9FAFB'
+                  }}>
+                    <Text style={{ color: '#6B7280', fontSize: 16 }}>{applicationData.contactNumber || 'Not available'}</Text>
+                  </View>
+                </View>
+
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>Email</Text>
+                  <View style={{ 
+                    borderWidth: 1, 
+                    borderColor: '#E5E7EB', 
+                    borderRadius: 8, 
+                    paddingHorizontal: 16, 
+                    paddingVertical: 12,
+                    backgroundColor: '#F9FAFB'
+                  }}>
+                    <Text style={{ color: '#6B7280', fontSize: 16 }}>{applicationData.email || 'Not available'}</Text>
+                  </View>
+                </View>
+
+                {/* Category-Specific Fields */}
+                {category === "student" && (
+                  <>
+                    <View style={{ height: 1, backgroundColor: '#E5E7EB', marginVertical: 16 }} />
+                    <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>School Information</Text>
+                    
+                    <View>
+                      <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>School Name</Text>
+                      <TextInput
+                        placeholder="Enter your school name"
+                        placeholderTextColor="#9CA3AF"
+                        value={applicationData.schoolName || ""}
+                        onChangeText={(v) => handleChange("schoolName", v)}
+                        style={{
+                          borderWidth: 1,
+                          borderColor: errors.schoolName ? '#EF4444' : '#E5E7EB',
+                          borderRadius: 8,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                          backgroundColor: 'white',
+                          fontSize: 16,
+                          color: '#111827'
+                        }}
+                      />
+                      {errors.schoolName && <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors.schoolName}</Text>}
+                    </View>
+
+                    <View>
+                      <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>School Address</Text>
+                      <TextInput
+                        placeholder="Enter your school address"
+                        placeholderTextColor="#9CA3AF"
+                        value={applicationData.schoolLocation || ""}
+                        onChangeText={(v) => handleChange("schoolLocation", v)}
+                        style={{
+                          borderWidth: 1,
+                          borderColor: errors.schoolLocation ? '#EF4444' : '#E5E7EB',
+                          borderRadius: 8,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                          backgroundColor: 'white',
+                          fontSize: 16,
+                          color: '#111827'
+                        }}
+                      />
+                      {errors.schoolLocation && <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors.schoolLocation}</Text>}
+                    </View>
+
+                    <View>
+                      <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>Student ID</Text>
+                      <TextInput
+                        placeholder="Enter your student ID"
+                        placeholderTextColor="#9CA3AF"
+                        value={applicationData.idNum || ""}
+                        onChangeText={(v) => handleChange("idNum", v.replace(/[^0-9]/g, ""))}
+                        keyboardType="numeric"
+                        style={{
+                          borderWidth: 1,
+                          borderColor: errors.idNum ? '#EF4444' : '#E5E7EB',
+                          borderRadius: 8,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                          backgroundColor: 'white',
+                          fontSize: 16,
+                          color: '#111827'
+                        }}
+                      />
+                      {errors.idNum && <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors.idNum}</Text>}
+                    </View>
+
+                    <View>
+                      <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>Year & Level</Text>
+                      <View style={{ 
+                        borderWidth: 1, 
+                        borderColor: '#E5E7EB', 
+                        borderRadius: 8, 
+                        paddingHorizontal: 16, 
+                        paddingVertical: 12,
+                        backgroundColor: '#F9FAFB'
+                      }}>
+                        <Text style={{ color: '#6B7280', fontSize: 16 }}>{applicationData.schoolYear || autoSchoolYear}</Text>
+                      </View>
+                    </View>
+                  </>
+                )}
+
+                {category === "pwd" && (
+                  <>
+                    <View style={{ height: 1, backgroundColor: '#E5E7EB', marginVertical: 16 }} />
+                    <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>PWD Information</Text>
+                    
+                    <View>
+                      <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>PWD ID Number</Text>
+                      <TextInput
+                        placeholder="Enter your PWD ID number"
+                        placeholderTextColor="#9CA3AF"
+                        value={applicationData.pwdId || ""}
+                        onChangeText={(v) => handleChange("pwdId", v.replace(/[^0-9]/g, ""))}
+                        keyboardType="numeric"
+                        style={{
+                          borderWidth: 1,
+                          borderColor: errors.pwdId ? '#EF4444' : '#E5E7EB',
+                          borderRadius: 8,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                          backgroundColor: 'white',
+                          fontSize: 16,
+                          color: '#111827'
+                        }}
+                      />
+                      {errors.pwdId && <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors.pwdId}</Text>}
+                    </View>
+
+                    <View>
+                      <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>Place of Issuance</Text>
+                      <TextInput
+                        placeholder="Enter place of issuance"
+                        placeholderTextColor="#9CA3AF"
+                        value={applicationData.pwdPlaceIssued || ""}
+                        onChangeText={(v) => handleChange("pwdPlaceIssued", v)}
+                        style={{
+                          borderWidth: 1,
+                          borderColor: errors.pwdPlaceIssued ? '#EF4444' : '#E5E7EB',
+                          borderRadius: 8,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                          backgroundColor: 'white',
+                          fontSize: 16,
+                          color: '#111827'
+                        }}
+                      />
+                      {errors.pwdPlaceIssued && <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors.pwdPlaceIssued}</Text>}
+                    </View>
+
+                    <View>
+                      <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>Date of Issuance</Text>
+                      <TouchableOpacity
+                        onPress={() => setShowPwdDatePicker(true)}
+                        style={{
+                          borderWidth: 1,
+                          borderColor: '#E5E7EB',
+                          borderRadius: 8,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                          backgroundColor: 'white'
+                        }}
+                      >
+                        <Text style={{ color: applicationData.pwdDateIssued ? '#111827' : '#9CA3AF', fontSize: 16 }}>
+                          {applicationData.pwdDateIssued
+                            ? new Date(applicationData.pwdDateIssued).toLocaleDateString()
+                            : "Select date of issuance"}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {showPwdDatePicker && (
+                        <DateTimePicker
+                          value={applicationData.pwdDateIssued ? new Date(applicationData.pwdDateIssued) : new Date()}
+                          mode="date"
+                          display="default"
+                          onChange={(event: any, selectedDate?: Date) => {
+                            setShowPwdDatePicker(false);
+                            if (selectedDate) {
+                              const formatted = selectedDate.toISOString().split("T")[0];
+                              handleChange("pwdDateIssued", formatted);
+                            }
+                          }}
+                        />
+                      )}
+                    </View>
+                  </>
+                )}
+
+                {category === "senior" && (
+                  <>
+                    <View style={{ height: 1, backgroundColor: '#E5E7EB', marginVertical: 16 }} />
+                    <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>Senior Citizen Information</Text>
+                    
+                    <View>
+                      <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>Senior ID Number</Text>
+                      <TextInput
+                        placeholder="Enter your senior ID number"
+                        placeholderTextColor="#9CA3AF"
+                        value={applicationData.seniorId || ""}
+                        onChangeText={(v) => handleChange("seniorId", v.replace(/[^0-9]/g, ""))}
+                        keyboardType="numeric"
+                        style={{
+                          borderWidth: 1,
+                          borderColor: errors.seniorId ? '#EF4444' : '#E5E7EB',
+                          borderRadius: 8,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                          backgroundColor: 'white',
+                          fontSize: 16,
+                          color: '#111827'
+                        }}
+                      />
+                      {errors.seniorId && <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors.seniorId}</Text>}
+                    </View>
+
+                    <View>
+                      <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>Place of Issuance</Text>
+                      <TextInput
+                        placeholder="Enter place of issuance"
+                        placeholderTextColor="#9CA3AF"
+                        value={applicationData.seniorPlaceIssued || ""}
+                        onChangeText={(v) => handleChange("seniorPlaceIssued", v)}
+                        style={{
+                          borderWidth: 1,
+                          borderColor: errors.seniorPlaceIssued ? '#EF4444' : '#E5E7EB',
+                          borderRadius: 8,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                          backgroundColor: 'white',
+                          fontSize: 16,
+                          color: '#111827'
+                        }}
+                      />
+                      {errors.seniorPlaceIssued && <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{errors.seniorPlaceIssued}</Text>}
+                    </View>
+
+                    <View>
+                      <Text style={{ fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 8 }}>Date of Issuance</Text>
+                      <TouchableOpacity
+                        onPress={() => setShowSeniorDatePicker(true)}
+                        style={{
+                          borderWidth: 1,
+                          borderColor: '#E5E7EB',
+                          borderRadius: 8,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                          backgroundColor: 'white'
+                        }}
+                      >
+                        <Text style={{ color: applicationData.seniorDateIssued ? '#111827' : '#9CA3AF', fontSize: 16 }}>
+                          {applicationData.seniorDateIssued
+                            ? new Date(applicationData.seniorDateIssued).toLocaleDateString()
+                            : "Select date of issuance"}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {showSeniorDatePicker && (
+                        <DateTimePicker
+                          value={applicationData.seniorDateIssued ? new Date(applicationData.seniorDateIssued) : new Date()}
+                          mode="date"
+                          display="default"
+                          onChange={(event: any, selectedDate?: Date) => {
+                            setShowSeniorDatePicker(false);
+                            if (selectedDate) {
+                              const formatted = selectedDate.toISOString().split("T")[0];
+                              handleChange("seniorDateIssued", formatted);
+                            }
+                          }}
+                        />
+                      )}
+                    </View>
+                  </>
+                )}
+              </View>
+
+              {/* Navigation Buttons */}
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 32 }}>
+                <TouchableOpacity
+                  onPress={goBack}
+                  disabled={isSubmitting}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    borderRadius: 8,
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: '#D1D5DB',
+                    opacity: isSubmitting ? 0.5 : 1
+                  }}
+                >
+                  <Text style={{ color: '#374151', fontWeight: '500' }}>Back</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  onPress={goNext}
+                  disabled={isSubmitting}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    borderRadius: 8,
+                    alignItems: 'center',
+                    backgroundColor: '#111827',
+                    opacity: isSubmitting ? 0.5 : 1
+                  }}
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={{ color: 'white', fontWeight: '600' }}>Next</Text>
+                  )}
                 </TouchableOpacity>
               </View>
-            )}
+            </KeyboardAwareScrollView>
+          </KeyboardAvoidingView>
+        )}
+
+        {/* Step 4: File Upload */}
+        {step === 4 && (
+          <View>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 8, textAlign: 'center' }}>
+              Upload Documents
+            </Text>
+            <Text style={{ color: '#6B7280', textAlign: 'center', marginBottom: 32, fontSize: 16 }}>
+              Please upload the required documents for verification
+            </Text>
+
+            <View style={{ gap: 24 }}>
+              {fileRequirements[category]?.map((label, index) => {
+                const camelKey = toCamelCase(label);
+
+                return (
+                  <View key={index}>
+                    <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827', marginBottom: 12 }}>{label}</Text>
+
+                    {/* File Preview */}
+                    {files[camelKey]?.uri ? (
+                      <View style={{ 
+                        borderRadius: 12, 
+                        overflow: 'hidden', 
+                        marginBottom: 12,
+                        borderWidth: 1,
+                        borderColor: '#E5E7EB'
+                      }}>
+                        <Image
+                          source={{ uri: files[camelKey].uri }}
+                          style={{ width: '100%', height: 200 }}
+                          resizeMode="cover"
+                        />
+                        <View style={{ 
+                          position: 'absolute', 
+                          top: 8, 
+                          right: 8, 
+                          backgroundColor: '#10B981', 
+                          borderRadius: 16, 
+                          width: 32, 
+                          height: 32, 
+                          alignItems: 'center', 
+                          justifyContent: 'center' 
+                        }}>
+                          <FontAwesome5 name="check" size={16} color="white" />
+                        </View>
+                      </View>
+                    ) : (
+                      <View style={{
+                        height: 200,
+                        borderWidth: 2,
+                        borderColor: '#E5E7EB',
+                        borderStyle: 'dashed',
+                        borderRadius: 12,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#F9FAFB',
+                        marginBottom: 12
+                      }}>
+                        <FontAwesome5 name="image" size={32} color="#D1D5DB" style={{ marginBottom: 8 }} />
+                        <Text style={{ color: '#9CA3AF', fontSize: 14 }}>No document uploaded</Text>
+                      </View>
+                    )}
+
+                    {/* Upload Buttons */}
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                      <TouchableOpacity
+                        onPress={() => takePhoto(label)}
+                        style={{
+                          flex: 1,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          paddingVertical: 12,
+                          borderRadius: 8,
+                          backgroundColor: '#111827',
+                          gap: 8
+                        }}
+                      >
+                        <FontAwesome5 name="camera" size={16} color="white" />
+                        <Text style={{ color: 'white', fontWeight: '500' }}>Camera</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={() => pickImage(label)}
+                        style={{
+                          flex: 1,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          paddingVertical: 12,
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: '#D1D5DB',
+                          backgroundColor: 'white',
+                          gap: 8
+                        }}
+                      >
+                        <FontAwesome5 name="folder-open" size={16} color="#374151" />
+                        <Text style={{ color: '#374151', fontWeight: '500' }}>Gallery</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* Navigation Buttons */}
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 32 }}>
+              <TouchableOpacity
+                onPress={goBack}
+                disabled={isSubmitting}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  opacity: isSubmitting ? 0.5 : 1
+                }}
+              >
+                <Text style={{ color: '#374151', fontWeight: '500' }}>Back</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={goNext}
+                disabled={isSubmitting}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  backgroundColor: '#111827',
+                  opacity: isSubmitting ? 0.5 : 1
+                }}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={{ color: 'white', fontWeight: '600' }}>Next</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
-        </ScrollView>
-      </View>
-    );
-  }
+        )}
+
+        {/* Step 5: Review Information */}
+        {step === 5 && (
+          <View>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 8, textAlign: 'center' }}>
+              Review Application
+            </Text>
+            <Text style={{ color: '#6B7280', textAlign: 'center', marginBottom: 32, fontSize: 16 }}>
+              Please review your information before submitting
+            </Text>
+
+            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>Personal Information</Text>
+              
+              <View style={{ gap: 12 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ color: '#6B7280', fontWeight: '500' }}>Name:</Text>
+                  <Text style={{ color: '#111827', fontWeight: '500', flex: 1, textAlign: 'right' }}>
+                    {applicationData.firstName} {applicationData.middleName} {applicationData.lastName}
+                  </Text>
+                </View>
+                
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ color: '#6B7280', fontWeight: '500' }}>Gender:</Text>
+                  <Text style={{ color: '#111827', fontWeight: '500' }}>{applicationData.gender}</Text>
+                </View>
+                
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ color: '#6B7280', fontWeight: '500' }}>Age:</Text>
+                  <Text style={{ color: '#111827', fontWeight: '500' }}>{applicationData.age} years old</Text>
+                </View>
+                
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ color: '#6B7280', fontWeight: '500' }}>Contact:</Text>
+                  <Text style={{ color: '#111827', fontWeight: '500' }}>{applicationData.contactNumber}</Text>
+                </View>
+                
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ color: '#6B7280', fontWeight: '500' }}>Email:</Text>
+                  <Text style={{ color: '#111827', fontWeight: '500', flex: 1, textAlign: 'right' }}>{applicationData.email}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Category-Specific Information */}
+            {category === "student" && (
+              <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>School Information</Text>
+                
+                <View style={{ gap: 12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#6B7280', fontWeight: '500' }}>School:</Text>
+                    <Text style={{ color: '#111827', fontWeight: '500', flex: 1, textAlign: 'right' }}>{applicationData.schoolName}</Text>
+                  </View>
+                  
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#6B7280', fontWeight: '500' }}>Address:</Text>
+                    <Text style={{ color: '#111827', fontWeight: '500', flex: 1, textAlign: 'right' }}>{applicationData.schoolLocation}</Text>
+                  </View>
+                  
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#6B7280', fontWeight: '500' }}>Student ID:</Text>
+                    <Text style={{ color: '#111827', fontWeight: '500' }}>{applicationData.idNum}</Text>
+                  </View>
+                  
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#6B7280', fontWeight: '500' }}>Year & Level:</Text>
+                    <Text style={{ color: '#111827', fontWeight: '500' }}>{applicationData.schoolYear}</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {category === "pwd" && (
+              <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>PWD Information</Text>
+                
+                <View style={{ gap: 12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#6B7280', fontWeight: '500' }}>PWD ID:</Text>
+                    <Text style={{ color: '#111827', fontWeight: '500' }}>{applicationData.pwdId}</Text>
+                  </View>
+                  
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#6B7280', fontWeight: '500' }}>Place Issued:</Text>
+                    <Text style={{ color: '#111827', fontWeight: '500', flex: 1, textAlign: 'right' }}>{applicationData.pwdPlaceIssued}</Text>
+                  </View>
+                  
+                  {applicationData.pwdDateIssued && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={{ color: '#6B7280', fontWeight: '500' }}>Date Issued:</Text>
+                      <Text style={{ color: '#111827', fontWeight: '500' }}>
+                        {new Date(applicationData.pwdDateIssued).toLocaleDateString()}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {category === "senior" && (
+              <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>Senior Citizen Information</Text>
+                
+                <View style={{ gap: 12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#6B7280', fontWeight: '500' }}>Senior ID:</Text>
+                    <Text style={{ color: '#111827', fontWeight: '500' }}>{applicationData.seniorId}</Text>
+                  </View>
+                  
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#6B7280', fontWeight: '500' }}>Place Issued:</Text>
+                    <Text style={{ color: '#111827', fontWeight: '500', flex: 1, textAlign: 'right' }}>{applicationData.seniorPlaceIssued}</Text>
+                  </View>
+                  
+                  {applicationData.seniorDateIssued && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={{ color: '#6B7280', fontWeight: '500' }}>Date Issued:</Text>
+                      <Text style={{ color: '#111827', fontWeight: '500' }}>
+                        {new Date(applicationData.seniorDateIssued).toLocaleDateString()}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
+
+            {/* Uploaded Documents */}
+            <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, padding: 20, marginBottom: 32 }}>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827', marginBottom: 16 }}>Uploaded Documents</Text>
+              
+              <View style={{ gap: 16 }}>
+                {fileRequirements[category]?.map((label, index) => {
+                  const camelKey = toCamelCase(label);
+                  return (
+                    <View key={index}>
+                      <Text style={{ fontSize: 14, fontWeight: '500', color: '#6B7280', marginBottom: 8 }}>{label}</Text>
+                      {files[camelKey]?.uri ? (
+                        <View style={{ borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: '#E5E7EB' }}>
+                          <Image
+                            source={{ uri: files[camelKey].uri }}
+                            style={{ width: '100%', height: 120 }}
+                            resizeMode="cover"
+                          />
+                        </View>
+                      ) : (
+                        <View style={{
+                          height: 60,
+                          borderWidth: 1,
+                          borderColor: '#FEF3C7',
+                          backgroundColor: '#FFFBEB',
+                          borderRadius: 8,
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <Text style={{ color: '#D97706', fontSize: 14 }}>No document uploaded</Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Navigation Buttons */}
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity
+                onPress={goBack}
+                disabled={isSubmitting}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: '#D1D5DB',
+                  opacity: isSubmitting ? 0.5 : 1
+                }}
+              >
+                <Text style={{ color: '#374151', fontWeight: '500' }}>Back</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={handleSubmitWithLoading}
+                disabled={isSubmitting}
+                style={{
+                  flex: 2,
+                  paddingVertical: 12,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  backgroundColor: '#111827',
+                  opacity: isSubmitting ? 0.5 : 1
+                }}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={{ color: 'white', fontWeight: '600' }}>Submit Application</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Step 6: Success */}
+        {step === 6 && (
+          <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+            <View style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: '#10B981',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 24
+            }}>
+              <FontAwesome5 name="check" size={32} color="white" />
+            </View>
+            
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827', marginBottom: 8, textAlign: 'center' }}>
+              Application Submitted!
+            </Text>
+            
+            <Text style={{ color: '#6B7280', textAlign: 'center', marginBottom: 32, fontSize: 16, lineHeight: 24 }}>
+              Your discount application has been successfully submitted. You'll receive a notification once it's reviewed and approved.
+            </Text>
+            
+            <TouchableOpacity
+              onPress={() => router.replace('/(tabs)/home')}
+              style={{
+                backgroundColor: '#111827',
+                paddingVertical: 16,
+                paddingHorizontal: 32,
+                borderRadius: 8,
+                minWidth: 200,
+                alignItems: 'center'
+              }}
+            >
+              <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>Return Home</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
+}

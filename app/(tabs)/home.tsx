@@ -23,54 +23,45 @@ import Carousel from 'react-native-reanimated-carousel';
 
 const { width } = Dimensions.get('window');
 
-const banners = [
-  require('@/assets/images/banner1.png'),
-  require('@/assets/images/banner2.png'),
-  require('@/assets/images/banner3.png'),
-];
-
 export default function HomeScreen() {
   const router = useRouter();
   const { theme } = useTheme();
   const colors = theme === 'dark' ? darkColors : lightColors;
   const [loading, setLoading] = useState(true);
   const [showBalance, setShowBalance] = useState(true);
-  const [userData, setUserData] = useState<{ firstName: string, lastName: string, balance: number } | null>(null);
+  const [userData, setUserData] = useState<{ firstName: string, middleName: string, lastName: string, balance: number } | null>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-
   const [banners, setBanners] = useState<string[]>([]);
 
-  
-
   const fetchUser = async () => {
-  try {
-    setLoading(true);
-    const { uid } = await getAuthData();
+    try {
+      setLoading(true);
+      const { uid } = await getAuthData();
 
-    if (uid) {
-      const user = await fetchUserDataByUid(uid);
-      const txns = await getTransactions({ fromUser: uid }); // ✅ this line
+      if (uid) {
+        const user = await fetchUserDataByUid(uid);
+        const txns = await getTransactions({ fromUser: uid });
 
-      setUserData({
-        firstName: user.firstName,
-        lastName: user.lastName,
-        balance: user.balance ?? 0,
-      });
+        setUserData({
+          firstName: user.firstName,
+          middleName: user.middleName,
+          lastName: user.lastName,
+          balance: user.balance ?? 0,
+        });
 
-      setTransactions(txns); // ✅ store fetched transactions
+        setTransactions(txns);
+      }
+    } catch (err) {
+      console.error('Failed to fetch user or transactions:', err);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error('Failed to fetch user or transactions:', err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
-const fetchPromos = async () => {
+  const fetchPromos = async () => {
     try {
       const promos: Promo[] = await getPromos();
-      // extract only promos with valid photo
       const photos = promos
         .map((promo) => promo.photo)
         .filter((photo): photo is string => !!photo);
@@ -80,45 +71,42 @@ const fetchPromos = async () => {
     }
   };
 
-
-
-useEffect(() => {
-  // Initial fetch
-  fetchUser();
-  fetchPromos();
-  const interval = setInterval(async () => {
-    try {
-      const { uid } = await getAuthData();
-      if (uid) {
-        const txns = await getTransactions({ fromUser: uid });
-        setTransactions(txns);
-        const user = await fetchUserDataByUid(uid);
-        setUserData({
-          firstName: user.firstName,
-          lastName: user.lastName,
-          balance: user.balance ?? 0,
-        });
+  useEffect(() => {
+    fetchUser();
+    fetchPromos();
+    const interval = setInterval(async () => {
+      try {
+        const { uid } = await getAuthData();
+        if (uid) {
+          const txns = await getTransactions({ fromUser: uid });
+          setTransactions(txns);
+          const user = await fetchUserDataByUid(uid);
+          setUserData({
+            firstName: user.firstName,
+            middleName: user.middleName,
+            lastName: user.lastName,
+            balance: user.balance ?? 0,
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching latest transactions:', err);
       }
-    } catch (err) {
-      console.error('Error fetching latest transactions:', err);
-    }
-  }, 10000); // 10 seconds interval, adjust as needed
+    }, 1000);
 
-  // Cleanup interval on unmount
-  return () => clearInterval(interval);
-}, []);
-
+    return () => clearInterval(interval);
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchUser(), fetchPromos()]); // ✅ refresh user + promos together
+    await Promise.all([fetchUser(), fetchPromos()]);
     setRefreshing(false);
   };
 
   return (
     <View style={{ backgroundColor: colors.background }} className="flex-1">
       <ScrollView
-        contentContainerStyle={{ padding: 16 }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -127,33 +115,89 @@ useEffect(() => {
           />
         }
       >
-        {/* Balance Container */}
-        <View className="bg-[#0A2A54] rounded-xl p-4 mb-6 elevation-lg">
-          <View className="flex-row justify-between items-center mb-4">
-            <View className="flex-col">
-              <Text className="text-white text-4xl font-bold">
-                {showBalance
-                  ? `₱${(userData?.balance ?? 0).toFixed(2)}`
-                  : '***.**'}
+        {/* Header Spacing */}
+        <View className="h-4" />
+
+        {/* Balance Card - Cleaner Design */}
+        <View className="mx-6 mb-8">
+          <View 
+            style={{ backgroundColor: colors.secondaryBackground }}
+            className="rounded-2xl p-6 border border-gray-100 shadow-sm"
+          >
+            {/* User Greeting */}
+            <View className="mb-6">
+              <Text style={{ color: colors.text }} className="text-lg font-medium opacity-70">
+                Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}
               </Text>
-              <Text className="text-white text-base font-semibold">RidePay Balance</Text>
+              <Text style={{ color: colors.text }} className="text-2xl font-bold mt-1">
+                {userData ? `${userData.firstName} ${userData.middleName} ${userData.lastName}` : 'Welcome back'}
+              </Text>
             </View>
-            <TouchableOpacity onPress={() => setShowBalance(!showBalance)} className="mb-auto">
-              <Ionicons name={showBalance ? 'eye' : 'eye-off'} size={21} color="white" />
+
+            {/* Balance Section */}
+            <View className="flex-row justify-between items-start mb-6">
+              <View className="flex-1">
+                <Text style={{ color: colors.subtext }} className="text-sm font-medium mb-2">
+                  Available Balance
+                </Text>
+                <Text style={{ color: colors.text }} className="text-3xl font-bold">
+                  {showBalance
+                    ? `₱${(userData?.balance ?? 0).toFixed(2)}`
+                    : '₱••••••'}
+                </Text>
+              </View>
+              
+              <TouchableOpacity 
+                onPress={() => setShowBalance(!showBalance)}
+                className="p-3 rounded-xl"
+                style={{ backgroundColor: colors.background }}
+              >
+                <Ionicons 
+                  name={showBalance ? 'eye' : 'eye-off'} 
+                  size={20} 
+                  color={colors.subtext} 
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Top-up Button */}
+            <TouchableOpacity
+              onPress={() => router.push('/topup')}
+              className="bg-blue-600 rounded-xl p-4 flex-row items-center justify-center"
+            >
+              <Ionicons name="add" size={20} color="white" />
+              <Text className="text-white font-semibold text-lg ml-2">Top up</Text>
             </TouchableOpacity>
           </View>
+        </View>
 
-          <View className="flex-row mb-2">
-            <Text className="text-white text-2xl font-semibold text-center mt-auto">
-              {userData
-                ? `${userData.firstName} ${userData.lastName}`
-                : 'Loading...'}
-            </Text>
-            <TouchableOpacity
-              className="bg-yellow-500 px-4 py-2 rounded ml-auto"
-              onPress={() => router.push('/topup')}
+        {/* Quick Actions */}
+        <View className="mx-6 mb-8">
+          <View className="flex-row justify-between">
+            <TouchableOpacity 
+              onPress={() => router.push('/locations/map')}
+              className="flex-1 mr-3 p-4 rounded-xl border border-gray-200"
+              style={{ backgroundColor: colors.secondaryBackground }}
             >
-              <Text className="text-[#0A2A54] font-semibold text-lg">Top-up</Text>
+              <View className="items-center">
+                <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mb-3">
+                  <Ionicons name="location" size={24} color="#2563eb" />
+                </View>
+                <Text style={{ color: colors.text }} className="font-medium">Find Routes</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => router.push('/transaction-history')}
+              className="flex-1 ml-3 p-4 rounded-xl border border-gray-200"
+              style={{ backgroundColor: colors.secondaryBackground }}
+            >
+              <View className="items-center">
+                <View className="w-12 h-12 rounded-full bg-green-100 items-center justify-center mb-3">
+                  <Ionicons name="receipt" size={24} color="#16a34a" />
+                </View>
+                <Text style={{ color: colors.text }} className="font-medium">History</Text>
+              </View>
             </TouchableOpacity>
           </View>
         </View>
@@ -182,78 +226,121 @@ useEffect(() => {
           </MapView>
         </View>
 
-        
-      {/* ✅ Correct */}
-{banners.length > 0 && (
-  <View className="mb-6">
-    <Carousel
-      loop
-      width={width - 32}
-      height={120}
-      autoPlay
-      autoPlayInterval={3000}
-      data={banners}
-      scrollAnimationDuration={1000}
-      renderItem={({ item }) => (
-        <View className="rounded-xl overflow-hidden w-full h-full">
-          <Image
-            source={typeof item === 'string' ? { uri: item } : item}
-            resizeMode="cover"
-            className="w-full h-full"
-          />
-        </View>
-      )}
-    />
-  </View>
-)}
+        {/* Promotions Carousel */}
+        {banners.length > 0 && (
+          <View className="mb-8">
+            <View className="mx-6 mb-4">
+              <Text style={{ color: colors.text }} className="text-xl font-bold">
+                Promotions
+              </Text>
+            </View>
+            <Carousel
+              loop
+              width={width - 48}
+              height={140}
+              autoPlay
+              autoPlayInterval={4000}
+              data={banners}
+              scrollAnimationDuration={800}
+              style={{ marginLeft: 24 }}
+              renderItem={({ item }) => (
+                <View className="rounded-2xl overflow-hidden mr-4 border border-gray-200">
+                  <Image
+                    source={typeof item === 'string' ? { uri: item } : item}
+                    resizeMode="cover"
+                    className="w-full h-full"
+                  />
+                </View>
+              )}
+            />
+          </View>
+        )}
 
-        {/* Transactions Section */}
-        <View style={{ backgroundColor: colors.secondaryBackground }} className="p-4 elevation-md shadow-sm mx-5 rounded-lg mb-20">
+        {/* Recent Transactions */}
+        <View className="mx-6 mb-8">
           <View className="flex-row justify-between items-center mb-6">
-            <Text style={{ color: colors.subtext }} className="text-xl font-bold">
-              Transactions
+            <Text style={{ color: colors.text }} className="text-xl font-bold">
+              Recent Activity
             </Text>
             <TouchableOpacity onPress={() => router.push('/transaction-history')}>
-              <Text style={{ color: colors.highlight ?? '#FFD700' }} className="text-lg font-medium">
-                See all
-              </Text>
+              <Text className="text-blue-600 font-medium">View all</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Render Transactions */}
-          {transactions.length === 0 ? (
-  <Text style={{ color: colors.text }} className="text-center text-base italic">
-    No recent transactions.
-  </Text>
-) : (
-  transactions
-  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-  .slice(0, 5) // optional: get the latest 5
-  .map((txn, idx) => (
-    <View key={txn._id || idx}>
-      <TransactionItem
-        title={txn.type}
-        body={
-          txn.type === 'topup'
-            ? `Added ₱${txn.amount} to wallet`
-            : txn.type === 'bus'
-            ? 'Paid fare for bus'
-            : txn.type === 'card'
-            ? 'Successfully bought card'
-            : 'Transaction'
-        }
-        date={new Date(txn.timestamp).toLocaleString()}
-        amount={`${txn.type === 'topup' ? '+' : '-'}₱${txn.amount}`}
-      />
-      {idx < Math.min(transactions.length, 5) - 1 && (
-        <View className="border border-gray-200 my-2" />
-      )}
-    </View>
-  ))
-)}
+          <View 
+            style={{ backgroundColor: colors.secondaryBackground }}
+            className="rounded-2xl p-4 border border-gray-100"
+          >
+            {transactions.length === 0 ? (
+              <View className="items-center py-8">
+                <View className="w-16 h-16 rounded-full bg-gray-100 items-center justify-center mb-4">
+                  <Ionicons name="receipt-outline" size={32} color="#6b7280" />
+                </View>
+                <Text style={{ color: colors.subtext }} className="text-base text-center">
+                  No recent transactions
+                </Text>
+                <Text style={{ color: colors.subtext }} className="text-sm text-center opacity-70 mt-1">
+                  Your transaction history will appear here
+                </Text>
+              </View>
+            ) : (
+              <View>
+                {transactions
+                  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                  .slice(0, 4)
+                  .map((txn, idx) => (
+                    <View key={txn._id || idx}>
+                      <View className="flex-row items-center py-4">
+                        <View className="w-12 h-12 rounded-full bg-gray-100 items-center justify-center mr-4">
+                          <Ionicons 
+                            name={
+                              txn.type === 'topup' ? 'add' : 
+                              txn.type === 'bus' ? 'bus' :
+                              txn.type === 'card' ? 'card' : 'receipt'
+                            }
+                            size={20} 
+                            color={txn.type === 'topup' ? '#16a34a' : '#dc2626'} 
+                          />
+                        </View>
+                        
+                        <View className="flex-1">
+                          <Text style={{ color: colors.text }} className="font-medium text-base">
+                            {txn.type === 'topup' ? 'Wallet Top-up' :
+                             txn.type === 'bus' ? 'Bus Fare Payment' :
+                             txn.type === 'card' ? 'Card Purchase' : 'Transaction'}
+                          </Text>
+                          <Text style={{ color: colors.subtext }} className="text-sm mt-1">
+                            {new Date(txn.timestamp).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </Text>
+                        </View>
+                        
+                        <Text 
+                          className={`font-bold text-base ${
+                            txn.type === 'topup' ? 'text-green-600' : 'text-red-600'
+                          }`}
+                        >
+                          {txn.type === 'topup' ? '+' : '-'}₱{txn.amount}
+                        </Text>
+                      </View>
+                      
+                      {idx < Math.min(transactions.length, 4) - 1 && (
+                        <View className="border-b border-gray-100" />
+                      )}
+                    </View>
+                  ))
+                }
+              </View>
+            )}
+          </View>
         </View>
 
-        <View className="mb-32">
+        <View className="mx-6">
           <Footer />
         </View>
       </ScrollView>

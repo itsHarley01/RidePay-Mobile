@@ -7,6 +7,7 @@ import { Entypo, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ExplorePage() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function ExplorePage() {
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [hasDiscount, setHasDiscount] = useState<boolean | null>(null);
 
-  // ✅ Fetch discount status from API (or local storage)
+  // Fetch discount status from API
   useEffect(() => {
     const fetchDiscountStatus = async () => {
       try {
@@ -43,88 +44,242 @@ export default function ExplorePage() {
     }
   };
 
-  return (
-    <ScrollView
-      style={{ backgroundColor: colors.background }}
-      className="flex-1 px-4 pt-10 pb-32"
-    >
-      {/* Page Title */}
-      <Text
-        style={{ color: colors.text }}
-        className="text-2xl font-bold mb-6 text-center"
-      >
-        Explore More
-      </Text>
+  const services = [
+    { 
+      id: 'topup',
+      icon: 'wallet-outline', 
+      label: "Top Up", 
+      action: () => router.push('/topup'),
+      color: '#3b82f6'
+    },
+    { 
+      id: 'discount',
+      icon: 'pricetag-outline', 
+      label: "Discount", 
+      action: handleAccountDiscount,
+      color: '#3b82f6'
+    },
+    { 
+      id: 'support',
+      icon: 'chatbubble-outline', 
+      label: "Support", 
+      action: () => router.push('/support'),
+      color: '#3b82f6'
+    },
+    { 
+      id: 'history',
+      icon: 'time-outline', 
+      label: "History", 
+      action: () => router.push('/transaction-history'),
+      color: '#3b82f6'
+    },
+    { 
+      id: 'report',
+      icon: 'alert-circle-outline', 
+      label: "Report", 
+      action: () => router.push('/report'),
+      color: '#3b82f6'
+    },
+    { 
+      id: 'feedback',
+      icon: 'thumbs-up-outline', 
+      label: "Feedback", 
+      action: () => router.push('/feedback'),
+      color: '#3b82f6'
+    },
+  ];
 
-      {/* SERVICES */}
-      <Text style={{ color: colors.text }} className="text-xl font-bold mb-4">
-        Services
+  const locations = [
+    { 
+      id: 'topup-spots',
+      icon: 'location-outline', 
+      label: "Top-Up Spots", 
+      action: () => router.push('/locations/topup-locations'),
+      color: '#f59e0b'
+    },
+    { 
+      id: 'live-bus',
+      icon: 'bus-outline', 
+      label: "Live Bus", 
+      action: () => router.push('/locations/live-bus'),
+      color: '#f59e0b'
+    },
+    { 
+      id: 'bus-routes',
+      icon: 'map-outline', 
+      label: "Bus Routes", 
+      action: () => router.push('/locations/bus-routes'),
+      color: '#f59e0b'
+    },
+    { 
+      id: 'terminals',
+      icon: 'business-outline', 
+      label: "Terminals", 
+      action: () => router.push('/locations/nearby-terminals'),
+      color: '#f59e0b'
+    },
+  ];
+
+  const others = [
+    { 
+      id: 'faq',
+      icon: 'help-circle-outline', 
+      label: "FAQ", 
+      action: () => router.push('/faq'),
+      color: '#6b7280'
+    },
+    { 
+      id: 'guide',
+      icon: 'book-outline', 
+      label: "App Guide", 
+      action: () => router.push('/guide'),
+      color: '#6b7280'
+    },
+    { 
+      id: 'about',
+      icon: 'information-circle-outline', 
+      label: "About Us", 
+      action: () => router.push('/aboutus'),
+      color: '#6b7280'
+    },
+    { 
+      id: 'privacy',
+      icon: 'shield-checkmark-outline', 
+      label: "Privacy", 
+      action: () => router.push('/privacy-policy'),
+      color: '#6b7280'
+    },
+    { 
+      id: 'terms',
+      icon: 'document-text-outline', 
+      label: "Terms", 
+      action: () => router.push('/terms'),
+      color: '#6b7280'
+    },
+  ];
+
+  const renderSection = (title: string, items: any[], columns: number = 3) => (
+    <View style={{ marginBottom: 48 }}>
+      <Text style={{
+        fontSize: 20,
+        fontWeight: '600',
+        color: colors.text,
+        marginBottom: 24,
+        letterSpacing: -0.2,
+      }}>
+        {title}
       </Text>
-      <View className="flex-row flex-wrap justify-between mb-8">
-        {[
-          { icon: <Ionicons name="wallet" size={28} color={colors.text} />, label: "Top Up", action: () => router.push('/topup') },
-          { icon: <Ionicons name="pricetags" size={28} color={colors.text} />, label: "Discount", action: handleAccountDiscount },
-          { icon: <Ionicons name="chatbubble-ellipses" size={28} color={colors.text} />, label: "Support", action: () => router.push('/support')},
-          { icon: <MaterialIcons name="history" size={28} color={colors.text} />, label: "History", action: () => router.push('/transaction-history') },
-          { icon: <MaterialIcons name="report-problem" size={28} color={colors.text} />, label: "Report", action:  () => router.push('/report')},
-          { icon: <Ionicons name="thumbs-up" size={28} color={colors.text} />, label: "Feedback", action: () => router.push('/feedback') },
-        ].map((item, idx) => (
+      
+      <View style={{
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+      }}>
+        {items.map((item) => (
           <TouchableOpacity
-            key={idx}
+            key={item.id}
             onPress={item.action}
-            className="w-1/3 items-center mb-6"
+            style={{
+              width: `${100 / columns - 2}%`,
+              alignItems: 'center',
+              marginBottom: 32,
+            }}
+            activeOpacity={0.7}
           >
-            <View style={{ backgroundColor: colors.accent }} className=" p-4 rounded-full mb-2">
-              {item.icon}
+            {/* Icon Container */}
+            <View style={{
+              width: 64,
+              height: 64,
+              borderRadius: 20,
+              backgroundColor: item.color + '15',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 12,
+              borderWidth: 1,
+              borderColor: item.color + '20',
+            }}>
+              <Ionicons 
+                name={item.icon as any} 
+                size={28} 
+                color={item.color}
+              />
             </View>
-            <Text style={{ color: colors.text }} className="text-sm text-center">{item.label}</Text>
+            
+            {/* Label */}
+            <Text style={{
+              fontSize: 14,
+              color: colors.text,
+              textAlign: 'center',
+              fontWeight: '500',
+              lineHeight: 18,
+            }}>
+              {item.label}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
-
-      {/* LOCATIONS */}
-      <Text style={{ color: colors.text }} className="text-xl font-bold mb-4">Locations</Text>
-      <View className="flex-row flex-wrap justify-between mb-8">
-        {[
-          { icon: <Entypo name="location-pin" size={28} color={colors.text} />, label: "Top-Up Spots", action: () => router.push('/locations/topup-locations') },
-          { icon: <MaterialIcons name="directions-bus" size={28} color={colors.text} />, label: "Live Bus", action: () => router.push('/locations/live-bus') },
-          { icon: <Ionicons name="map" size={28} color={colors.text} />, label: "Bus Routes", action: () => router.push('/locations/bus-routes') },
-          { icon: <Entypo name="location" size={28} color={colors.text} />, label: "Nearby Terminals", action: () => router.push('/locations/nearby-terminals') },
-        ].map((item, idx) => (
-          <TouchableOpacity key={idx} onPress={item.action} className="w-1/3 items-center mb-6">
-            <View style={{ backgroundColor: colors.accent }} className=" p-4 rounded-full mb-2">
-              {item.icon}
-            </View>
-            <Text style={{ color: colors.text }} className="text-sm text-center">{item.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* OTHERS */}
-      <Text style={{ color: colors.text }} className="text-xl font-bold mb-4">Others</Text>
-      <View className="flex-row flex-wrap gap-x-4 mb-32">
-        {[
-  { icon: <Ionicons name="help-circle" size={28} color={colors.text} />, label: "FAQ", action: () => router.push('/faq')},
-  { icon: <Ionicons name="book" size={28} color={colors.text} />, label: "App Guide", action: () => router.push('/guide')},
-  { icon: <Ionicons name="information-circle" size={28} color={colors.text} />, label: "About Us", action: () => router.push('/aboutus')},
-  { icon: <Ionicons name="shield-checkmark" size={28} color={colors.text} />, label: "Privacy Policy", action: () => router.push('/privacy-policy')},
-  { icon: <Ionicons name="document-text" size={28} color={colors.text} />, label: "Terms & Conditions", action: () => router.push('/terms') },
-].map((item, idx) => (
-  <TouchableOpacity
-    key={idx}
-    onPress={item.action} // ✅ this enables navigation
-    className="w-[30%] items-center mb-6"
-  >
-    <View style={{ backgroundColor: colors.accent }} className=" p-4 rounded-full mb-2">
-      {item.icon}
     </View>
-    <Text style={{ color: colors.text }} className="text-sm text-center">{item.label}</Text>
-  </TouchableOpacity>
-))}
+  );
 
+  return (
+    <SafeAreaView style={{ backgroundColor: colors.background, flex: 1 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ 
+          paddingHorizontal: 24,
+          paddingTop: 16,
+          paddingBottom: 120,
+        }}
+      >
+        {/* Header */}
+        <View style={{
+          alignItems: 'center',
+          marginBottom: 48,
+          paddingTop: 16,
+        }}>
+          <Text style={{
+            fontSize: 32,
+            fontWeight: '700',
+            color: colors.text,
+            letterSpacing: -0.8,
+            marginBottom: 8,
+          }}>
+            Explore
+          </Text>
+          <Text style={{
+            fontSize: 16,
+            color: colors.subtext,
+            textAlign: 'center',
+            fontWeight: '400',
+          }}>
+            Discover all available services
+          </Text>
+        </View>
+
+        {/* Services Section */}
+        {renderSection('Services', services, 3)}
+
+        {/* Locations Section */}
+        {renderSection('Locations', locations, 2)}
+
+        {/* Others Section */}
+        {renderSection('More', others, 3)}
+      </ScrollView>
+
+      {/* Footer - Fixed at bottom */}
+      <View style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: colors.background,
+        borderTopWidth: 1,
+        borderTopColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+      }}>
+        <Footer />
       </View>
 
-
+      {/* Discount Modal */}
       <ModalMessage
         visible={showDiscountModal}
         onClose={() => setShowDiscountModal(false)}
@@ -136,10 +291,6 @@ export default function ExplorePage() {
         message="You haven't applied for an account discount yet."
         primaryButtonText="Apply for Discount"
       />
-
-      <View className="mt-auto h-64">
-        <Footer />
-      </View>
-    </ScrollView>
+    </SafeAreaView>
   );
 }
