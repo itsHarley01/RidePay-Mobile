@@ -283,7 +283,7 @@ export default function TransactionHistoryPage() {
                             >
                               <Ionicons 
                                 name={
-                                  txn.type === 'topup' ? 'add' : 
+                                  txn.type === 'topup' ? 'wallet' : 
                                   txn.type === 'bus' ? 'bus' :
                                   txn.type === 'card' ? 'card' : 'receipt'
                                 }

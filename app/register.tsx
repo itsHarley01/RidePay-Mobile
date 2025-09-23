@@ -156,31 +156,59 @@ export default function RegisterPage() {
   };
 
   const handleSubmit = async () => {
-    if (!validateStep()) return;
-    setError('');
-    setErrors({});
+  if (!validateStep()) return;
+  setError('');
+  setErrors({});
 
-    try {
-      setLoadingSubmit(true);
-      const payload: any = {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.trim(),
-        password: password,
-        contactNumber: phoneNumber.trim(),
-      };
-      await registerPassenger(payload);
-      setShowModal(true);
-    } catch (error: any) {
-      console.error('Registration Error:', error);
-      Alert.alert(
-        'Registration Failed',
-        error?.error || 'Something went wrong. Please try again.'
-      );
-    } finally {
-      setLoadingSubmit(false);
+  try {
+    setLoadingSubmit(true);
+    const payload: any = {
+      firstName: firstName.trim(),
+      middleName: middleName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim(),
+      password: password,
+      contactNumber: phoneNumber.trim(),
+    };
+
+    await registerPassenger(payload);
+    setShowModal(true);
+
+  } catch (error: any) {
+    console.error('Registration Error:', error);
+
+    // ✅ Duplicate phone number check
+    if (
+      error?.response?.status === 409 &&
+      error?.response?.data?.message?.includes('phone')
+    ) {
+      setErrors((prev) => ({
+        ...prev,
+        phoneNumber: 'This phone number is already registered.',
+      }));
+      return;
     }
-  };
+
+    // ✅ Duplicate email check (if backend throws it differently)
+    if (
+      error?.response?.status === 409 &&
+      error?.response?.data?.message?.includes('email')
+    ) {
+      setErrors((prev) => ({
+        ...prev,
+        email: 'This email is already registered.',
+      }));
+      return;
+    }
+
+    Alert.alert(
+      'Registration Failed',
+      error?.error || 'Something went wrong. Please try again.'
+    );
+  } finally {
+    setLoadingSubmit(false);
+  }
+};
 
   // Minimalist Progress Bar
   const renderProgressBar = () => (

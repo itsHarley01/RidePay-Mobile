@@ -14,6 +14,7 @@ interface DiscountApplicationData {
   files?: Record<string, FileData>;
 }
 
+// ✅ New applications
 export const submitDiscountApplication = async ({
   userId,
   category,
@@ -23,25 +24,22 @@ export const submitDiscountApplication = async ({
   try {
     const formData = new FormData();
 
-    // Required text fields
     formData.append('userId', userId);
     formData.append('category', category);
-    formData.append('data', JSON.stringify(data)); // Send as JSON string
+    formData.append('data', JSON.stringify(data)); // keep consistent with backend
 
-    // Append files (if any)
     if (files) {
       Object.entries(files).forEach(([fieldName, file]) => {
-  const normalizedName = fieldName.toLowerCase(); // or map manually to backend's expected keys
-  formData.append(normalizedName, {
-    uri: Platform.OS === 'ios' ? file.uri.replace('file://', '') : file.uri,
-    name: file.name || `${normalizedName}.jpg`,
-    type: file.type || 'application/octet-stream',
-  } as any);
-});
-
+        const normalizedName = fieldName.toLowerCase();
+        formData.append(normalizedName, {
+          uri: Platform.OS === 'ios' ? file.uri.replace('file://', '') : file.uri,
+          name: file.name || `${normalizedName}.jpg`,
+          type: file.type || 'application/octet-stream',
+        } as any);
+      });
     }
 
-    console.log('🚀 Sending formData with fields:', {
+    console.log('🚀 Sending NEW application formData:', {
       userId,
       category,
       data,
@@ -49,21 +47,61 @@ export const submitDiscountApplication = async ({
     });
 
     const response = await axiosInstance.post('/discount/apply', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
 
     return response.data;
   } catch (error: any) {
-    console.error(
-      '❌ Error submitting discount application:',
-      error.response?.data || error.message
-    );
+    console.error('❌ Error submitting discount application:', error.response?.data || error.message);
     throw error.response?.data || { error: 'Failed to submit discount application' };
   }
 };
 
+// ✅ Renewals (new function)
+export const submitDiscountRenewal = async ({
+  userId,
+  category,
+  data,
+  files,
+}: DiscountApplicationData) => {
+  try {
+    const formData = new FormData();
+
+    formData.append('userId', userId);
+    formData.append('category', category);
+    formData.append('data', JSON.stringify(data));
+
+    if (files) {
+      Object.entries(files).forEach(([fieldName, file]) => {
+        const normalizedName = fieldName.toLowerCase();
+        formData.append(normalizedName, {
+          uri: Platform.OS === 'ios' ? file.uri.replace('file://', '') : file.uri,
+          name: file.name || `${normalizedName}.jpg`,
+          type: file.type || 'application/octet-stream',
+        } as any);
+      });
+    }
+
+    console.log('🔄 Sending RENEWAL formData:', {
+      userId,
+      category,
+      data,
+      fileFields: files ? Object.keys(files) : [],
+    });
+
+    // 🔥 Important: different endpoint
+    const response = await axiosInstance.post('/discount/renew', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error submitting discount renewal:', error.response?.data || error.message);
+    throw error.response?.data || { error: 'Failed to submit discount renewal' };
+  }
+};
+
+// Fetch applications
 export interface DiscountApplication {
   id: string;
   category: 'student' | 'senior' | 'pwd';
@@ -83,10 +121,7 @@ export const getDiscountApplications = async (): Promise<DiscountApplication[]> 
     const response = await axiosInstance.get('/discount/applications');
     return response.data as DiscountApplication[];
   } catch (error: any) {
-    console.error(
-      '❌ Error fetching discount applications:',
-      error.response?.data || error.message
-    );
+    console.error('❌ Error fetching discount applications:', error.response?.data || error.message);
     throw error.response?.data || { error: 'Failed to fetch discount applications' };
   }
 };

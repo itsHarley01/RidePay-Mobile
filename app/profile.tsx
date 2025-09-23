@@ -22,7 +22,12 @@ import {
 export const hasUserDiscount = async (userId: string): Promise<boolean> => {
   try {
     const apps: DiscountApplication[] = await getDiscountApplications();
-    return apps.some(app => app.userId === userId && app.status.status !== 'rejected');
+    const validStatuses = ['approved', 'active']; // Define what statuses mean user has discount
+    
+    return apps.some(app => 
+      app.userId === userId &&  
+      validStatuses.includes(app.status.status)
+    );
   } catch (error) {
     console.error("Error checking discount:", error);
     return false;
@@ -104,17 +109,27 @@ export default function ProfilePage() {
   }, [loadProfile]);
 
   const handleAccountDiscount = async () => {
-    const { uid } = await getAuthData();
-    if (!uid) return;
+  const { uid } = await getAuthData();
+  if (!uid) return;
 
-    const hasDiscount = await hasUserDiscount(uid);
+  try {
+    const apps: DiscountApplication[] = await getDiscountApplications();
+    const userApp = apps.find(app => app.userId === uid);
 
-    if (hasDiscount) {
-      router.push('/discount');
-    } else {
+    if (!userApp) {
+      // ❌ No application exists → show modal
       setShowDiscountModal(true);
+    } else {
+      // ✅ User has already applied (approved, pending, rejected, expired, etc.)
+      // Just route to /discount, no modal shown
+      router.push('/discount');
     }
-  };
+  } catch (error) {
+    console.error("Error checking discount:", error);
+    setShowDiscountModal(true); // fallback if API fails
+  }
+};
+
 
   const handleFreezeAccount = () => {
     setShowFreezeConfirm(true);

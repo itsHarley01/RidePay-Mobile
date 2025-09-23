@@ -210,7 +210,7 @@ export default function ChangePasswordPage() {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                editable={!loading}
+                editable={false}
                 autoCorrect={false}
               />
               <View style={{

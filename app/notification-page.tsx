@@ -234,7 +234,7 @@ export default function NotificationPage() {
           <RefreshControl 
             refreshing={refreshing} 
             onRefresh={onRefresh} 
-            colors={colors.highlight ? [colors.highlight] : undefined}
+            colors={colors.accent ? [colors.accent] : undefined}
           />
         }
       >
@@ -291,9 +291,9 @@ export default function NotificationPage() {
                           {/* Notification Icon */}
                           <View 
                             className={`w-12 h-12 rounded-full items-center justify-center mr-4 ${
-                              txn.type === 'topup' ? 'bg-green-100' : 
-                              txn.type === 'bus' ? 'bg-blue-100' :
-                              txn.type === 'card' ? 'bg-purple-100' : 'bg-gray-100'
+                              txn.type === 'topup' ? 'bg-purple-100' : 
+                              txn.type === 'bus' ? 'bg-red-100' :
+                              txn.type === 'card' ? 'bg-red-100' : 'bg-gray-100'
                             }`}
                           >
                             <Ionicons 
@@ -301,8 +301,8 @@ export default function NotificationPage() {
                               size={20} 
                               color={
                                 txn.type === 'topup' ? '#16a34a' : 
-                                txn.type === 'bus' ? '#2563eb' :
-                                txn.type === 'card' ? '#7c3aed' : '#6b7280'
+                                txn.type === 'bus' ? '#dc2626' :
+                                txn.type === 'card' ? '#dc2626' : '#6b7280'
                               } 
                             />
                           </View>
@@ -315,10 +315,10 @@ export default function NotificationPage() {
                               </Text>
                               <Text 
                                 className={`text-sm font-medium ${
-                                  txn.type === 'topup' ? 'text-green-600' : 'text-blue-600'
+                                  txn.type === 'topup' ? 'text-green-600' : 'text-red-600'
                                 }`}
                               >
-                                {txn.type === 'topup' ? '+' : ''}₱{txn.amount}
+                                {txn.type === 'topup' ? '+' : '-'}₱{txn.amount}
                               </Text>
                             </View>
                             

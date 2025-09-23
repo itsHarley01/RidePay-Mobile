@@ -121,26 +121,26 @@ export default function HomeScreen() {
         {/* Balance Card - Cleaner Design */}
         <View className="mx-6 mb-8">
           <View 
-            style={{ backgroundColor: colors.secondaryBackground }}
-            className="rounded-2xl p-6 border border-gray-100 shadow-sm"
+            style={{ backgroundColor: '#0A2A54' }}
+            className="rounded-2xl p-6 border border-gray-700 shadow-lg"
           >
-            {/* User Greeting */}
+           {/* User Greeting */}
             <View className="mb-6">
-              <Text style={{ color: colors.text }} className="text-lg font-medium opacity-70">
+              <Text style={{ color: 'rgba(255, 255, 255, 0.7)' }} className="text-lg font-medium">
                 Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}
               </Text>
-              <Text style={{ color: colors.text }} className="text-2xl font-bold mt-1">
+              <Text style={{ color: 'white' }} className="text-2xl font-bold mt-1">
                 {userData ? `${userData.firstName} ${userData.middleName} ${userData.lastName}` : 'Welcome back'}
               </Text>
             </View>
 
-            {/* Balance Section */}
+             {/* Balance Section */}
             <View className="flex-row justify-between items-start mb-6">
               <View className="flex-1">
-                <Text style={{ color: colors.subtext }} className="text-sm font-medium mb-2">
+                <Text style={{ color: 'rgba(255, 255, 255, 0.7)' }} className="text-sm font-medium mb-2">
                   Available Balance
                 </Text>
-                <Text style={{ color: colors.text }} className="text-3xl font-bold">
+                <Text style={{ color: 'white' }} className="text-3xl font-bold">
                   {showBalance
                     ? `₱${(userData?.balance ?? 0).toFixed(2)}`
                     : '₱••••••'}
@@ -150,12 +150,12 @@ export default function HomeScreen() {
               <TouchableOpacity 
                 onPress={() => setShowBalance(!showBalance)}
                 className="p-3 rounded-xl"
-                style={{ backgroundColor: colors.background }}
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
               >
                 <Ionicons 
                   name={showBalance ? 'eye' : 'eye-off'} 
                   size={20} 
-                  color={colors.subtext} 
+                  color="rgba(255, 255, 255, 0.7)" 
                 />
               </TouchableOpacity>
             </View>
@@ -163,10 +163,10 @@ export default function HomeScreen() {
             {/* Top-up Button */}
             <TouchableOpacity
               onPress={() => router.push('/topup')}
-              className="bg-blue-600 rounded-xl p-4 flex-row items-center justify-center"
+              className="bg-yellow-400 rounded-xl p-4 flex-row items-center justify-center"   
             >
-              <Ionicons name="add" size={20} color="white" />
-              <Text className="text-white font-semibold text-lg ml-2">Top up</Text>
+              <Ionicons name="add" size={20} color="black" />
+              <Text className="text-black font-semibold text-lg ml-2">Top up</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -294,7 +294,7 @@ export default function HomeScreen() {
                         <View className="w-12 h-12 rounded-full bg-gray-100 items-center justify-center mr-4">
                           <Ionicons 
                             name={
-                              txn.type === 'topup' ? 'add' : 
+                              txn.type === 'topup' ? 'wallet' : 
                               txn.type === 'bus' ? 'bus' :
                               txn.type === 'card' ? 'card' : 'receipt'
                             }
