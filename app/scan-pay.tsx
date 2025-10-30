@@ -220,7 +220,6 @@ export default function ScanPayScreen() {
   </View>
 )}
 
-
                 <View className="flex-row mt-6 w-full justify-between">
                   <TouchableOpacity
                     onPress={resetScanner}
