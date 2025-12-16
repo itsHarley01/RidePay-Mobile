@@ -28,4 +28,3 @@ export const verifyOtp = async (
   );
   return res.data;
 };
-

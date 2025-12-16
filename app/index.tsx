@@ -3,7 +3,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { darkColors, lightColors } from '@/theme/colors';
 import { saveAuthData } from '@/utils/auth';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // ✅
 import {
   ActivityIndicator,
   Image,
@@ -12,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // ✅ for eye icon
+import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -20,7 +21,7 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // ✅ state for toggling password
+  const [showPassword, setShowPassword] = useState(false);
 
   const { theme } = useTheme();
   const colors = theme === 'dark' ? darkColors : lightColors;
@@ -30,7 +31,25 @@ export default function LoginScreen() {
       ? require('../assets/images/dark-logo.png')
       : require('../assets/images/ridepay-logo2.png');
 
-   const handleLogin = async () => {
+  // ✅ Load saved credentials if available
+  useEffect(() => {
+    const loadCredentials = async () => {
+      try {
+        const savedEmail = await AsyncStorage.getItem('email');
+        const savedPassword = await AsyncStorage.getItem('password');
+        if (savedEmail && savedPassword) {
+          setEmail(savedEmail);
+          setPassword(savedPassword);
+          setRememberMe(true);
+        }
+      } catch (err) {
+        console.log('Error loading saved credentials:', err);
+      }
+    };
+    loadCredentials();
+  }, []);
+
+  const handleLogin = async () => {
     setErrors({ email: '', password: '' });
 
     if (!email || !password) {
@@ -45,9 +64,18 @@ export default function LoginScreen() {
       setLoading(true);
       const res = await loginPassenger({ email, password });
       await saveAuthData(res.uid, res.token);
+
+      // ✅ Save or clear credentials depending on rememberMe
+      if (rememberMe) {
+        await AsyncStorage.setItem('email', email);
+        await AsyncStorage.setItem('password', password);
+      } else {
+        await AsyncStorage.removeItem('email');
+        await AsyncStorage.removeItem('password');
+      }
+
       router.replace('/(tabs)/home');
     } catch (error: any) {
-      // ✅ normalize API error
       const message = error?.response?.data?.error || error?.message || '';
 
       if (message.toLowerCase().includes('not registered')) {
@@ -55,14 +83,12 @@ export default function LoginScreen() {
       } else if (message.toLowerCase().includes('invalid password')) {
         setErrors({ email: '', password: 'Invalid password' });
       } else {
-        // fallback: show a generic login error under password
         setErrors({ email: '', password: 'Invalid email or password' });
       }
     } finally {
       setLoading(false);
     }
   };
-
 
   return (
     <View style={{ backgroundColor: colors.background }} className="flex-1 justify-center items-center px-4">
@@ -104,7 +130,7 @@ export default function LoginScreen() {
             value={password}
             onChangeText={setPassword}
             className="flex-1 py-3"
-            secureTextEntry={!showPassword} // ✅ toggle here
+            secureTextEntry={!showPassword}
             placeholderTextColor={colors.placeholder}
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
@@ -136,11 +162,11 @@ export default function LoginScreen() {
         {/* Login button */}
         <TouchableOpacity
           onPress={handleLogin}
-          className={`py-3 rounded-xl mb-4 mt-10 ${loading ? 'bg-gray-400' : 'bg-[#0A2A54]'}`}
+          className={`py-3 rounded-xl mb-4 mt-10 bg-[#0A2A54]`}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#000000ff" />
           ) : (
             <Text className="text-white text-center text-base font-semibold">Login</Text>
           )}

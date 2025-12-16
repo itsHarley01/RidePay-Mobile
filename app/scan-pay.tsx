@@ -37,7 +37,7 @@ export default function ScanPayScreen() {
   }>(null);
 
   // NFC panel animation
-  const NFC_HEIGHT = SCREEN_HEIGHT * 0.9;
+  const NFC_HEIGHT = SCREEN_HEIGHT * 0.85;
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
@@ -53,10 +53,9 @@ export default function ScanPayScreen() {
     });
   }, [nfcMode]);
 
-  // Barcode handler. Accepts either event.data or event.nativeEvent?.data to be safe.
+  // Barcode handler
   const handleBarCodeScanned = async (event: any) => {
     try {
-      // prevent double-processing
       if (scannedRef.current) return;
       scannedRef.current = true;
       setScanned(true);
@@ -106,7 +105,7 @@ export default function ScanPayScreen() {
         setLoading(false);
       }
     } finally {
-      // keep scanned true until user presses "Scan Again" (do not immediately re-enable)
+      // keep scanned true until user presses "Scan Again"
     }
   };
 
@@ -119,120 +118,195 @@ export default function ScanPayScreen() {
 
   if (!permission || !permission.granted) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <Text className="text-base mb-2">We need your permission to show the camera</Text>
-        <TouchableOpacity onPress={requestPermission}>
-          <Text className="text-lg text-blue-600">Grant Permission</Text>
+      <View className="flex-1 items-center justify-center bg-white px-8">
+        <MaterialCommunityIcons name="camera" size={64} color="#9CA3AF" />
+        <Text className="text-gray-600 text-center mt-6 mb-8 text-base leading-6">
+          Camera access is required to scan QR codes
+        </Text>
+        <TouchableOpacity 
+          onPress={requestPermission}
+          className="bg-gray-900 px-8 py-3 rounded-full"
+        >
+          <Text className="text-white font-medium">Enable Camera</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View className="flex-1">
-      {/* Camera stays mounted while in QR mode. We only enable the barcode callback when scanned === false */}
+    <View className="flex-1 bg-black">
+      {/* Camera View */}
       {!nfcMode && (
         <CameraView
           facing={facing}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-          // correct prop name for CameraView is `onBarcodeScanned`
-          // cast to any to avoid strict typings if necessary
           onBarcodeScanned={scanned ? undefined : (handleBarCodeScanned as any)}
-          // keep barcode scanner settings — cast to any if types complain
           barcodeScannerSettings={{ barcodeTypes: ['qr'] } as any}
         />
       )}
 
-      {/* Scanning overlay (white square) — pointerEvents="none" so it doesn't block camera */}
+      {/* Scanning Overlay */}
       {!nfcMode && !scanned && (
         <View
           pointerEvents="none"
           className="absolute inset-0 z-10 flex items-center justify-center"
         >
-          <View className="w-64 h-64 border-4 border-white rounded-lg opacity-90" />
-          <Text className="absolute bottom-20 text-white text-lg">Align QR code inside the box</Text>
+          {/* Dark overlay with transparent center */}
+          <View className="absolute inset-0 bg-black/40" />
+          <View className="w-60 h-60 border-2 border-white rounded-2xl bg-transparent" 
+                style={{ 
+                  shadowColor: 'rgba(255, 255, 255, 0.3)', 
+                  shadowOffset: { width: 0, height: 0 }, 
+                  shadowOpacity: 1, 
+                  shadowRadius: 8,
+                  elevation: 8 
+                }} 
+          />
+          
+          {/* Corner indicators */}
+          <View className="absolute w-60 h-60 pointer-events-none">
+            {/* Top left */}
+            <View className="absolute top-0 left-0 w-6 h-6 border-l-4 border-t-4 border-white rounded-tl-2xl" />
+            {/* Top right */}
+            <View className="absolute top-0 right-0 w-6 h-6 border-r-4 border-t-4 border-white rounded-tr-2xl" />
+            {/* Bottom left */}
+            <View className="absolute bottom-0 left-0 w-6 h-6 border-l-4 border-b-4 border-white rounded-bl-2xl" />
+            {/* Bottom right */}
+            <View className="absolute bottom-0 right-0 w-6 h-6 border-r-4 border-b-4 border-white rounded-br-2xl" />
+          </View>
+          
+          <Text className="absolute bottom-32 text-white/90 text-center px-8 font-medium">
+            Position QR code within the frame
+          </Text>
         </View>
       )}
 
-      {/* Back Button */}
-      <TouchableOpacity
-        onPress={() => router.back()}
-        className="absolute top-12 left-5 bg-black/40 rounded-full p-2 z-20"
-      >
-        <Ionicons name="arrow-back" size={24} color="#fff" />
-      </TouchableOpacity>
+      {/* Header */}
+      <View className="absolute top-0 left-0 right-0 z-20 pt-12 pb-4 bg-gradient-to-b from-black/60 to-transparent">
+        <View className="flex-row items-center px-6">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm items-center justify-center"
+          >
+            <Ionicons name="arrow-back" size={20} color="#fff" />
+          </TouchableOpacity>
+          <Text className="text-white font-semibold text-lg ml-4">
+            {nfcMode ? 'NFC Payment' : 'Scan QR Code'}
+          </Text>
+        </View>
+      </View>
 
-      {/* Bottom NFC Button */}
+      {/* Bottom Actions */}
       {!nfcMode && !scanned && (
-        <TouchableOpacity
-          onPress={() => setNfcMode(true)}
-          className="absolute bottom-5 self-center bg-[#0A2A54] w-52 h-16 rounded-full justify-center items-center z-20"
-        >
-          <MaterialCommunityIcons name="contactless-payment" size={26} color="white" />
-          <Text className="text-white text-sm mt-1">Pay with NFC</Text>
-        </TouchableOpacity>
+        <View className="absolute bottom-0 left-0 right-0 z-20 pb-8 pt-6 bg-gradient-to-t from-black/60 to-transparent">
+          <View className="items-center">
+            <TouchableOpacity
+              onPress={() => setNfcMode(true)}
+              className="bg-white rounded-full px-8 py-4 flex-row items-center shadow-lg"
+            >
+              <MaterialCommunityIcons name="contactless-payment" size={24} color="#000" />
+              <Text className="text-black font-semibold ml-3">Use NFC Instead</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
 
-      {/* NFC PANEL */}
+      {/* NFC Panel */}
       <Animated.View
-        className="absolute bottom-0 w-full items-center pt-10 bg-[#0A2A54] rounded-t-[40px] z-30"
+        className="absolute bottom-0 w-full bg-white rounded-t-3xl z-30 items-center"
         style={[{ height: NFC_HEIGHT }, animatedStyle]}
       >
-        <TouchableOpacity onPress={() => setNfcMode(false)}>
-          <Text className="text-white mb-5 underline">Back to QR</Text>
+        {/* Handle */}
+        <View className="w-12 h-1 bg-gray-300 rounded-full mt-4 mb-8" />
+        
+        <TouchableOpacity 
+          onPress={() => setNfcMode(false)}
+          className="absolute top-6 right-6 w-8 h-8 rounded-full bg-gray-100 items-center justify-center"
+        >
+          <Ionicons name="close" size={18} color="#6B7280" />
         </TouchableOpacity>
-        <View className="items-center mt-12">
-          <Image source={require('../assets/images/nfc-phone-icon-white.png')} style={{ width: 220, height: 220 }} />
-          <Text className="text-white text-2xl font-bold mt-4">Tap to Pay</Text>
-          <Text className="text-gray-300 text-md mt-1">Hold your phone near the bus scanner.</Text>
+
+        <View className="items-center px-8 mt-16">
+          <View className="w-32 h-32 bg-gray-50 rounded-full items-center justify-center mb-8">
+            <MaterialCommunityIcons name="contactless-payment" size={64} color="#6B7280" />
+          </View>
+          
+          <Text className="text-2xl font-bold text-gray-900 mb-3">Tap to Pay</Text>
+          <Text className="text-gray-600 text-center text-base leading-6 max-w-64">
+            Hold your phone near the payment terminal on the bus
+          </Text>
+
+          {/* Animated ripple effect */}
+          <View className="mt-12 relative">
+            <View className="w-24 h-24 bg-blue-100 rounded-full items-center justify-center">
+              <View className="w-16 h-16 bg-blue-200 rounded-full items-center justify-center">
+                <View className="w-8 h-8 bg-blue-500 rounded-full" />
+              </View>
+            </View>
+          </View>
         </View>
       </Animated.View>
 
-      {/* Result Popup (this intentionally blocks touches while visible) */}
+      {/* Result Modal */}
       {scanned && (
-        <View className="absolute inset-0 z-40 items-center justify-center bg-black/60 px-6">
-          <View className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 items-center">
+        <View className="absolute inset-0 z-40 items-center justify-center bg-black/50 px-6">
+          <View className="w-full max-w-sm bg-white rounded-3xl p-8 items-center shadow-2xl">
             {loading ? (
-              <>
-                <ActivityIndicator size="large" color="#0A2A54" />
-                <Text className="text-gray-700 mt-4 text-lg">Processing tap...</Text>
-              </>
+              <View className="items-center py-8">
+                <ActivityIndicator size="large" color="#6B7280" />
+                <Text className="text-gray-600 mt-6 text-lg">Processing...</Text>
+              </View>
             ) : (
               <>
-                <MaterialCommunityIcons
-                  name={result?.success ? 'check-circle' : 'close-circle'}
-                  size={64}
-                  color={result?.success ? 'green' : 'red'}
-                />
-                <Text className={`text-xl font-bold mt-3 ${result?.success ? 'text-green-600' : 'text-red-600'}`}>
-                  {result?.success ? 'Tap Successful' : 'Tap Failed'}
+                <View className={`w-16 h-16 rounded-full items-center justify-center mb-6 ${
+                  result?.success ? 'bg-green-100' : 'bg-red-100'
+                }`}>
+                  <MaterialCommunityIcons
+                    name={result?.success ? 'check' : 'close'}
+                    size={32}
+                    color={result?.success ? '#10B981' : '#EF4444'}
+                  />
+                </View>
+
+                <Text className={`text-xl font-bold mb-3 ${
+                  result?.success ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {result?.success ? 'Payment Successful' : 'Payment Failed'}
                 </Text>
-                <Text className="text-gray-600 mt-2 text-center">{result?.message}</Text>
 
-{result?.success && (
-  <View className="mt-4 items-center">
-    <Text className="text-lg text-gray-800">
-      Fare: ₱{result.finalFare != null ? result.finalFare.toFixed(2) : '-'}
-    </Text>
-    <Text className="text-lg text-gray-800">
-      New Balance: ₱{result.newBalance != null ? result.newBalance.toFixed(2) : '-'}
-    </Text>
-  </View>
-)}
+                <Text className="text-gray-600 text-center mb-6 leading-6">
+                  {result?.message}
+                </Text>
 
+                {result?.success && (
+                  <View className="w-full bg-gray-50 rounded-2xl p-4 mb-6">
+                    <View className="flex-row justify-between items-center mb-2">
+                      <Text className="text-gray-600">Fare</Text>
+                      <Text className="font-semibold text-gray-900">
+                        ₱{result.finalFare?.toFixed(2) ?? '-'}
+                      </Text>
+                    </View>
+                    <View className="flex-row justify-between items-center">
+                      <Text className="text-gray-600">New Balance</Text>
+                      <Text className="font-semibold text-gray-900">
+                        ₱{result.newBalance?.toFixed(2) ?? '-'}
+                      </Text>
+                    </View>
+                  </View>
+                )}
 
-                <View className="flex-row mt-6 w-full justify-between">
+                <View className="flex-row w-full gap-3">
                   <TouchableOpacity
                     onPress={resetScanner}
-                    className="flex-1 bg-[#0A2A54] py-3 rounded-xl mr-2"
+                    className="flex-1 bg-gray-100 py-4 rounded-2xl"
                   >
-                    <Text className="text-center text-white font-semibold">Scan Again</Text>
+                    <Text className="text-center text-gray-900 font-semibold">Scan Again</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => router.back()}
-                    className="flex-1 bg-gray-300 py-3 rounded-xl ml-2"
+                    className="flex-1 bg-gray-900 py-4 rounded-2xl"
                   >
-                    <Text className="text-center text-gray-800 font-semibold">Done</Text>
+                    <Text className="text-center text-white font-semibold">Done</Text>
                   </TouchableOpacity>
                 </View>
               </>
