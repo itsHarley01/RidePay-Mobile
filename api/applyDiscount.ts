@@ -57,50 +57,6 @@ export const submitDiscountApplication = async ({
   }
 };
 
-// ✅ Renewals (new function)
-export const submitDiscountRenewal = async ({
-  userId,
-  category,
-  data,
-  files,
-}: DiscountApplicationData) => {
-  try {
-    const formData = new FormData();
-
-    formData.append('userId', userId);
-    formData.append('category', category);
-    formData.append('data', JSON.stringify(data));
-
-    if (files) {
-      Object.entries(files).forEach(([fieldName, file]) => {
-        const normalizedName = fieldName.toLowerCase();
-        formData.append(normalizedName, {
-          uri: Platform.OS === 'ios' ? file.uri.replace('file://', '') : file.uri,
-          name: file.name || `${normalizedName}.jpg`,
-          type: file.type || 'application/octet-stream',
-        } as any);
-      });
-    }
-
-    console.log('🔄 Sending RENEWAL formData:', {
-      userId,
-      category,
-      data,
-      fileFields: files ? Object.keys(files) : [],
-    });
-
-    // 🔥 Important: different endpoint
-    const response = await axiosInstance.post('/discount/renew', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-
-    return response.data;
-  } catch (error: any) {
-    console.error('❌ Error submitting discount renewal:', error.response?.data || error.message);
-    throw error.response?.data || { error: 'Failed to submit discount renewal' };
-  }
-};
-
 // Fetch applications
 export interface DiscountApplication {
   id: string;
@@ -123,5 +79,52 @@ export const getDiscountApplications = async (): Promise<DiscountApplication[]> 
   } catch (error: any) {
     console.error('❌ Error fetching discount applications:', error.response?.data || error.message);
     throw error.response?.data || { error: 'Failed to fetch discount applications' };
+  }
+};
+
+// ✅ Renewals (fixed with discountId)
+export const submitDiscountRenewal = async ({
+  userId,
+  discountId,   // 🔥 add discountId
+  category,
+  data,
+  files,
+}: DiscountApplicationData & { discountId: string }) => {
+  try {
+    const formData = new FormData();
+
+    formData.append('userId', userId);
+    formData.append('discountId', discountId); // 🔑 backend needs this
+    formData.append('category', category);
+    formData.append('data', JSON.stringify(data));
+
+    if (files) {
+      Object.entries(files).forEach(([fieldName, file]) => {
+        const normalizedName = fieldName.toLowerCase();
+        formData.append(normalizedName, {
+          uri: Platform.OS === 'ios' ? file.uri.replace('file://', '') : file.uri,
+          name: file.name || `${normalizedName}.jpg`,
+          type: file.type || 'application/octet-stream',
+        } as any);
+      });
+    }
+
+    console.log('🔄 Sending RENEWAL formData:', {
+      userId,
+      discountId,
+      category,
+      data,
+      fileFields: files ? Object.keys(files) : [],
+    });
+
+    // 🔥 Calls backend endpoint for renewals
+    const response = await axiosInstance.post('/discount/renew', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error('❌ Error submitting discount renewal:', error.response?.data || error.message);
+    throw error.response?.data || { error: 'Failed to submit discount renewal' };
   }
 };

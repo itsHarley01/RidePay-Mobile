@@ -1,5 +1,5 @@
 
-import { submitDiscountApplication } from '@/api/applyDiscount';
+import { submitDiscountApplication, submitDiscountRenewal, getDiscountApplications } from '@/api/applyDiscount';
 import { KeyboardAvoidingView, Platform } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { Modal } from 'react-native'; 
@@ -66,6 +66,8 @@ export default function DiscountApply() {
 
   const [isRenewal, setIsRenewal] = useState(false);
   const { category: renewalCategory, renewal } = useLocalSearchParams();
+  const [existingDiscountId, setExistingDiscountId] = useState<string | null>(null);
+
 
 
   const goBack = () => {
@@ -182,6 +184,22 @@ export default function DiscountApply() {
     if (renewal === 'true' && renewalCategory) {
       setIsRenewal(true);
       setCategory(renewalCategory as string);
+      
+      // Fetch existing discount application to get the ID
+      try {
+        const applications = await getDiscountApplications();
+        const userApps = applications.filter(app => app.userId === uid);
+        const categoryApp = userApps
+          .filter(app => app.category === renewalCategory)
+          .sort((a, b) => new Date(b.status.dateOfApplication).getTime() - new Date(a.status.dateOfApplication).getTime())[0];
+        
+        if (categoryApp) {
+          setExistingDiscountId(categoryApp.id);
+        }
+      } catch (error) {
+        console.error('Error fetching existing discount:', error);
+      }
+
       setStep(2); // Skip privacy terms for renewals
       return;
     }
@@ -330,14 +348,19 @@ export default function DiscountApply() {
       if (!applicationData.schoolName) errors.push("School Name is required");
       if (!applicationData.schoolLocation) errors.push("School Address is required");
       if (!applicationData.idNum) errors.push("Student ID is required");
-      if (!applicationData.schoolYear) {
-        errors.push("Year & Level is required");
-      } else {
-        const expected = `${currentYear} - ${nextYear}`;
-        if (applicationData.schoolYear !== expected) {
-          errors.push(`Year & Level must be ${expected}`);
+      
+      // Skip school year validation for student renewals since it's auto-filled
+      if (!isRenewal) {
+        if (!applicationData.schoolYear) {
+          errors.push("Year & Level is required");
+        } else {
+          const expected = `${currentYear} - ${nextYear}`;
+          if (applicationData.schoolYear !== expected) {
+            errors.push(`Year & Level must be ${expected}`);
+          }
         }
       }
+      // For renewals, school year is auto-filled and doesn't need validation
     }
 
     // For new PWD/Senior applications (not renewals)
@@ -514,32 +537,42 @@ export default function DiscountApply() {
   }
 
   try {
-    // Prepare submission data based on renewal type
-    let submissionData = {
-      userId,
-      category,
-      isRenewal, // Add flag to indicate this is a renewal
-      data: {},
-      files: {}
-    };
-
     if (isRenewal) {
+      // Handle renewal submission
+      if (!existingDiscountId) {
+        Alert.alert('Error', 'Could not find existing discount to renew.');
+        return;
+      }
+
+      let renewalData = {
+        userId,
+        discountId: existingDiscountId,
+        category,
+        data: {},
+        files: {}
+      };
+
       if (category === 'student') {
         // For student renewals: send updated details, no files
-        submissionData.data = applicationData;
-        submissionData.files = {}; // No files for student renewals
+        renewalData.data = applicationData;
+        renewalData.files = {};
       } else {
         // For PWD/Senior renewals: send only files, no updated personal details
-        submissionData.data = {}; // No personal data updates
-        submissionData.files = files;
+        renewalData.data = {};
+        renewalData.files = files;
       }
+
+      await submitDiscountRenewal(renewalData);
     } else {
-      // For new applications: send everything
-      submissionData.data = applicationData;
-      submissionData.files = files;
+      // Handle new application submission
+      await submitDiscountApplication({
+        userId,
+        category,
+        data: applicationData,
+        files
+      });
     }
 
-    await submitDiscountApplication(submissionData);
     setStep(6);
   } catch (error) {
     console.error('Submit error:', error);

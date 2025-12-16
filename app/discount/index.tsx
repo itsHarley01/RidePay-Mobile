@@ -6,6 +6,7 @@ import { getAuthData } from '@/utils/auth';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 import {
   ActivityIndicator,
   ScrollView,
@@ -24,27 +25,60 @@ export default function DiscountIndex() {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchApplications = async () => {
-      try {
-        const { uid } = await getAuthData();
-        if (!uid) return;
+  const fetchApplications = async () => {
+    try {
+      const { uid } = await getAuthData();
+      if (!uid) return;
 
-        setUserId(uid);
+      setUserId(uid);
 
-        const data = await getDiscountApplications();
-        if (data && Array.isArray(data)) {
-          const userApps = data.filter((app) => app.userId === uid);
-          setApplications(userApps);
-        }
-      } catch (err) {
-        console.error('Error fetching discount applications:', err);
-      } finally {
-        setLoading(false);
+      const data = await getDiscountApplications();
+      if (data && Array.isArray(data)) {
+        const userApps = data.filter((app) => app.userId === uid);
+        
+        // ✅ Filter to show only the most recent application per category
+        const currentApplications = filterCurrentApplications(userApps);
+        setApplications(currentApplications);
       }
-    };
+    } catch (err) {
+      console.error('Error fetching discount applications:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchApplications();
-  }, []);
+  fetchApplications();
+}, []);
+
+const filterCurrentApplications = (applications: any[]) => {
+  // Group applications by category
+  const groupedByCategory = applications.reduce((acc, app) => {
+    if (!acc[app.category]) {
+      acc[app.category] = [];
+    }
+    acc[app.category].push(app);
+    return acc;
+  }, {} as Record<string, any[]>);
+
+  // For each category, keep only the most recent application
+  const currentApplications: any[] = [];
+  
+  Object.keys(groupedByCategory).forEach(category => {
+    const categoryApps = groupedByCategory[category];
+    
+    // Sort by date of application (most recent first)
+    const sortedApps = categoryApps.sort((a, b) => {
+      const dateA = new Date(a.status.dateOfApplication).getTime();
+      const dateB = new Date(b.status.dateOfApplication).getTime();
+      return dateB - dateA; // Newest first
+    });
+    
+    // Take only the most recent application for this category
+    currentApplications.push(sortedApps[0]);
+  });
+
+  return currentApplications;
+};
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -88,10 +122,27 @@ export default function DiscountIndex() {
     return expiry < today;
   };
 
-  const handleRenewal = (category: string) => {
-    // Navigate to the apply page with the category pre-filled
-    router.push(`/discount/apply?category=${category.toLowerCase()}&renewal=true`);
-  };
+ const handleRenewal = (category: string, discountId: string) => {
+  Alert.alert(
+    'Renew Discount Application',
+    `Are you sure you want to start a new ${category} discount application? This will create a fresh application with updated information.`,
+    [
+      {
+        text: 'Cancel',
+        style: 'cancel',
+      },
+      {
+        text: 'Continue',
+        style: 'default',
+        onPress: () => {
+          // Pass the discount ID for renewal
+          router.push(`/discount/apply?category=${category.toLowerCase()}&renewal=true&discountId=${discountId}`);
+        },
+      },
+    ],
+    { cancelable: true }
+  );
+};
 
   return (
     <SafeAreaView style={{ backgroundColor: colors.background, flex: 1 }}>
