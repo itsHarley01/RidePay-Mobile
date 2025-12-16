@@ -1,4 +1,4 @@
-import MarkerInfoModal from '@/components/MarkerInfoModal'; // Adjust path if needed
+import MarkerInfoModal from '@/components/MarkerInfoModal';
 import { FontAwesome5 } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
@@ -7,19 +7,26 @@ import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import mapStyle from '../../assets/map/mapStyle.json';
 
+// 👉 IMPORT YOUR API FUNCTION
+import { getBusDetails } from '@/api/busDetails';
+
 export default function LiveBus() {
   const router = useRouter();
-  const mapRef = useRef(null);
-  const [selectedMarker, setSelectedMarker] = useState(null);
-  const [userLocation, setUserLocation] = useState(null);
+  const mapRef = useRef<MapView | null>(null);
+
+  const [selectedMarker, setSelectedMarker] = useState<any>(null);
+  const [userLocation, setUserLocation] = useState<any>(null);
+
+  // 👉 NEW STATE
+  const [busDetails, setBusDetails] = useState<any>(null);
+  const [loadingBus, setLoadingBus] = useState(false);
 
   const busRoute = [
-  { latitude: 10.3157, longitude: 123.8854 }, // Starting point (e.g., Bus 1 location)
-  { latitude: 10.3165, longitude: 123.8880 }, // Intermediate stop
-  { latitude: 10.3172, longitude: 123.8900 }, // Intermediate stop
-  { latitude: 10.3180, longitude: 123.8925 }, // Destination or station
-];
-
+    { latitude: 10.3157, longitude: 123.8854 },
+    { latitude: 10.3165, longitude: 123.888 },
+    { latitude: 10.3172, longitude: 123.89 },
+    { latitude: 10.318, longitude: 123.8925 },
+  ];
 
   useEffect(() => {
     (async () => {
@@ -34,11 +41,27 @@ export default function LiveBus() {
     })();
   }, []);
 
+  // 👉 TEMP STATIC BUS (later this will come from Firebase list)
   const busMarker = {
-    id: 'bus-1',
-    title: 'Bus 1',
+    id: 'BUS_301', // 👈 THIS IS THE busId
+    title: 'Bus 301',
     description: 'Current location of the bus',
     coordinate: { latitude: 10.3157, longitude: 123.8854 },
+  };
+
+  // 👉 Fetch bus details when marker is pressed
+  const handleBusPress = async () => {
+    setSelectedMarker(busMarker);
+    setLoadingBus(true);
+
+    try {
+      const data = await getBusDetails(busMarker.id);
+      setBusDetails(data);
+    } catch (error) {
+      console.error('Failed to fetch bus details:', error);
+    } finally {
+      setLoadingBus(false);
+    }
   };
 
   return (
@@ -64,20 +87,22 @@ export default function LiveBus() {
         }}
         showsUserLocation
         showsMyLocationButton={false}
-        onPress={() => setSelectedMarker(null)} // Dismiss on map tap
+        onPress={() => {
+          setSelectedMarker(null);
+          setBusDetails(null);
+        }}
       >
-
         <Polyline
           coordinates={busRoute}
-          strokeColor="#facc15" // Tailwind yellow-400
+          strokeColor="#facc15"
           strokeWidth={4}
         />
-              
+
         <Marker
           coordinate={busMarker.coordinate}
           title={busMarker.title}
           description={busMarker.description}
-          onPress={() => setSelectedMarker(busMarker)}
+          onPress={handleBusPress}
         >
           <View className="w-10 h-10">
             <Image
@@ -91,7 +116,9 @@ export default function LiveBus() {
 
       {/* Locate Me Button */}
       <TouchableOpacity
-        className={`absolute ${selectedMarker ? 'bottom-[30%]' : 'bottom-5'} right-5 bg-yellow-500 p-3 rounded-full shadow z-10 w-16 h-16 justify-center items-center`}
+        className={`absolute ${
+          selectedMarker ? 'bottom-[35%]' : 'bottom-5'
+        } right-5 bg-yellow-500 p-3 rounded-full shadow z-10 w-16 h-16 justify-center items-center`}
         onPress={() => {
           if (userLocation) {
             mapRef.current?.animateToRegion({
@@ -111,11 +138,15 @@ export default function LiveBus() {
         <MarkerInfoModal
           type="bus"
           marker={{
-            title: 'Bus 301',
-            description: 'Currently en route',
+            title: busMarker.title,
+            description: busMarker.description,
           }}
           distance="1.2"
-          onClose={() => setSelectedMarker(null)}
+          busDetails={busDetails} // 👈 HERE IT IS
+          onClose={() => {
+            setSelectedMarker(null);
+            setBusDetails(null);
+          }}
         />
       )}
     </View>
