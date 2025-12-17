@@ -10,19 +10,10 @@ type BusDetails = {
   busId: string;
   busName: string;
   busUID: string;
-  driver: string;
   numberOfSeats: number;
   licensePlate: string;
   assignedDevice: string | null;
   numberOfPassengers: number;
-  device: {
-    deviceId: string;
-    deviceName: string;
-    deviceUID: string;
-    lat: number | null;
-    long: number | null;
-    speed: number;
-  } | null;
 };
 
 export default function MarkerInfoModal({
@@ -54,6 +45,11 @@ export default function MarkerInfoModal({
   };
   busDetails?: BusDetails;
 }) {
+  const availableSeats =
+    busDetails?.numberOfSeats != null && busDetails?.numberOfPassengers != null
+      ? busDetails.numberOfSeats - busDetails.numberOfPassengers
+      : 0;
+
   return (
     <View
       className="absolute bottom-0 mx-auto w-full flex-col bg-[#0A2A54] rounded-t-3xl px-6 pt-6 pb-8 z-20"
@@ -61,19 +57,7 @@ export default function MarkerInfoModal({
     >
       {/* Header */}
       <View className="flex-row justify-between items-start mb-3">
-        <View className="flex-row items-center gap-2">
-          {type === "topup" && (
-            <FontAwesome5 name="money-bill-wave" size={20} color="white" />
-          )}
-          {type === "bus" && (
-            <MaterialIcons name="directions-bus" size={24} color="white" />
-          )}
-          {type === "route" && (
-            <FontAwesome5 name="route" size={20} color="white" />
-          )}
-          {type === "terminal" && (
-            <FontAwesome5 name="building" size={20} color="white" />
-          )}
+        <View>
           <Text className="text-white text-xl font-bold">
             {busDetails?.busName || marker.title}
           </Text>
@@ -100,52 +84,27 @@ export default function MarkerInfoModal({
       {/* ================= BUS CONTENT ================= */}
       {type === "bus" && busDetails && (
         <View className="mt-2 space-y-2">
-          <Text className="text-gray-300">
-            Bus ID:{" "}
-            <Text className="text-white font-semibold">
-              {busDetails.busId}
+
+          <View className="flex-row items-center gap-2">
+            <FontAwesome5 name="id-card" size={18} color="white" />
+            <Text className="text-gray-300">
+              License Plate: <Text className="text-white font-semibold">{busDetails.licensePlate}</Text>
             </Text>
-          </Text>
+          </View>
 
-          <Text className="text-gray-300">
-            Driver:{" "}
-            <Text className="text-white font-semibold">
-              {busDetails.driver}
+          <View className="flex-row items-center gap-2">
+            <FontAwesome5 name="user" size={18} color="white" />
+            <Text className="text-gray-300">
+              Passengers: <Text className="text-white font-semibold">{busDetails.numberOfPassengers} / {busDetails.numberOfSeats}</Text>
             </Text>
-          </Text>
+          </View>
 
-          <Text className="text-gray-300">
-            License Plate:{" "}
-            <Text className="text-white font-semibold">
-              {busDetails.licensePlate}
+          <View className="flex-row items-center gap-2">
+            <MaterialIcons name="event-seat" size={18} color="white" />
+            <Text className="text-gray-300">
+              Available Seats: <Text className="text-white font-semibold">{availableSeats}</Text>
             </Text>
-          </Text>
-
-          <Text className="text-gray-300">
-            Seats:{" "}
-            <Text className="text-white font-semibold">
-              {busDetails.numberOfPassengers} /{" "}
-              {busDetails.numberOfSeats}
-            </Text>
-          </Text>
-
-          {busDetails.device && (
-            <>
-              <Text className="text-yellow-400 font-semibold">
-                Speed:{" "}
-                <Text className="text-white">
-                  {busDetails.device.speed} km/h
-                </Text>
-              </Text>
-
-              <Text className="text-gray-300">
-                Location:{" "}
-                <Text className="text-white font-semibold">
-                  {busDetails.device.lat}, {busDetails.device.long}
-                </Text>
-              </Text>
-            </>
-          )}
+          </View>
         </View>
       )}
 
@@ -153,28 +112,16 @@ export default function MarkerInfoModal({
       {type === "route" && routeDetails && (
         <View className="mt-2 space-y-2">
           <Text className="text-gray-300">
-            From:{" "}
-            <Text className="text-white font-semibold">
-              {routeDetails.from}
-            </Text>
+            From: <Text className="text-white font-semibold">{routeDetails.from}</Text>
           </Text>
           <Text className="text-gray-300">
-            To:{" "}
-            <Text className="text-white font-semibold">
-              {routeDetails.to}
-            </Text>
+            To: <Text className="text-white font-semibold">{routeDetails.to}</Text>
           </Text>
           <Text className="text-gray-300">
-            Total Distance:{" "}
-            <Text className="text-white font-semibold">
-              {routeDetails.totalDistance} Km
-            </Text>
+            Total Distance: <Text className="text-white font-semibold">{routeDetails.totalDistance} Km</Text>
           </Text>
           <Text className="text-gray-300">
-            Estimated Time:{" "}
-            <Text className="text-white font-semibold">
-              {routeDetails.estimatedTime}
-            </Text>
+            Estimated Time: <Text className="text-white font-semibold">{routeDetails.estimatedTime}</Text>
           </Text>
         </View>
       )}
@@ -183,22 +130,13 @@ export default function MarkerInfoModal({
       {type === "terminal" && terminalDetails && (
         <View className="mt-2 space-y-2">
           <Text className="text-gray-300">
-            Terminal Code:{" "}
-            <Text className="text-white font-semibold">
-              {terminalDetails.terminalCode}
-            </Text>
+            Terminal Code: <Text className="text-white font-semibold">{terminalDetails.terminalCode}</Text>
           </Text>
           <Text className="text-gray-300">
-            Location:{" "}
-            <Text className="text-white font-semibold">
-              {terminalDetails.location}
-            </Text>
+            Location: <Text className="text-white font-semibold">{terminalDetails.location}</Text>
           </Text>
           <Text className="text-gray-300">
-            Description:{" "}
-            <Text className="text-white font-semibold">
-              {terminalDetails.description}
-            </Text>
+            Description: <Text className="text-white font-semibold">{terminalDetails.description}</Text>
           </Text>
         </View>
       )}

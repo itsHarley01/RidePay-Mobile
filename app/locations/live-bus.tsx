@@ -7,17 +7,18 @@ import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import mapStyle from '../../assets/map/mapStyle.json';
 
-// 👉 IMPORT YOUR API FUNCTION
-import { getBusDetails } from '@/api/busDetails';
+import { getAllBusesWithLocation, getBusDetails } from '@/api/busDetails';
 
 export default function LiveBus() {
   const router = useRouter();
   const mapRef = useRef<MapView | null>(null);
 
-  const [selectedMarker, setSelectedMarker] = useState<any>(null);
+  const [selectedMarker, setSelectedMarker] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<any>(null);
 
-  // 👉 NEW STATE
+  const [buses, setBuses] = useState<
+    Array<{ busId: string; busName: string; lat: number | null; long: number | null }>
+  >([]);
   const [busDetails, setBusDetails] = useState<any>(null);
   const [loadingBus, setLoadingBus] = useState(false);
 
@@ -28,6 +29,7 @@ export default function LiveBus() {
     { latitude: 10.318, longitude: 123.8925 },
   ];
 
+  /* ---------------- USER LOCATION ---------------- */
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -41,24 +43,43 @@ export default function LiveBus() {
     })();
   }, []);
 
-  // 👉 TEMP STATIC BUS (later this will come from Firebase list)
-  const busMarker = {
-    id: 'BUS_301', // 👈 THIS IS THE busId
-    title: 'Bus 301',
-    description: 'Current location of the bus',
-    coordinate: { latitude: 10.3157, longitude: 123.8854 },
-  };
+  /* ---------------- FETCH ALL BUSES ---------------- */
+  useEffect(() => {
+    const fetchBuses = async () => {
+      try {
+        const allBuses = await getAllBusesWithLocation();
+        setBuses(allBuses.filter((b) => b.lat != null && b.long != null));
+      } catch (e) {
+        console.error('🔥 Failed to fetch all buses:', e);
+      }
+    };
 
-  // 👉 Fetch bus details when marker is pressed
-  const handleBusPress = async () => {
-    setSelectedMarker(busMarker);
+    fetchBuses();
+  }, []);
+
+  /* ---------------- FETCH SINGLE BUS DETAILS ---------------- */
+  const handleMarkerPress = async (busId: string) => {
+    setSelectedMarker(busId);
     setLoadingBus(true);
 
     try {
-      const data = await getBusDetails(busMarker.id);
+      const data = await getBusDetails(busId);
+      if (!data) {
+        console.warn('⚠️ Bus not found for BUS_ID:', busId);
+        return;
+      }
       setBusDetails(data);
-    } catch (error) {
-      console.error('Failed to fetch bus details:', error);
+
+      if (data.device?.lat != null && data.device?.long != null) {
+        mapRef.current?.animateToRegion({
+          latitude: data.device.lat,
+          longitude: data.device.long,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+      }
+    } catch (e) {
+      console.error('🔥 Failed to load bus details:', e);
     } finally {
       setLoadingBus(false);
     }
@@ -69,12 +90,12 @@ export default function LiveBus() {
       {/* Back Button */}
       <TouchableOpacity
         onPress={() => router.back()}
-        className="absolute top-12 left-5 bg-black/60 px-4 py-2 w-12 h-12 rounded-full z-10 justify-center items-center"
+        className="absolute top-12 left-5 bg-black/60 w-12 h-12 rounded-full z-10 justify-center items-center"
       >
         <FontAwesome5 name="arrow-left" size={20} color="white" />
       </TouchableOpacity>
 
-      {/* Map View */}
+      {/* Map */}
       <MapView
         ref={mapRef}
         style={styles.map}
@@ -87,31 +108,26 @@ export default function LiveBus() {
         }}
         showsUserLocation
         showsMyLocationButton={false}
-        onPress={() => {
-          setSelectedMarker(null);
-          setBusDetails(null);
-        }}
+        onPress={() => setSelectedMarker(null)}
       >
-        <Polyline
-          coordinates={busRoute}
-          strokeColor="#facc15"
-          strokeWidth={4}
-        />
+        <Polyline coordinates={busRoute} strokeColor="#facc15" strokeWidth={4} />
 
-        <Marker
-          coordinate={busMarker.coordinate}
-          title={busMarker.title}
-          description={busMarker.description}
-          onPress={handleBusPress}
-        >
-          <View className="w-10 h-10">
-            <Image
-              source={require('../../assets/map/bus-pin.png')}
-              className="w-full h-full"
-              resizeMode="contain"
-            />
-          </View>
-        </Marker>
+        {/* All Bus Markers */}
+        {buses.map((bus) => (
+          <Marker
+            key={bus.busId}
+            coordinate={{ latitude: bus.lat!, longitude: bus.long! }}
+            onPress={() => handleMarkerPress(bus.busId)}
+          >
+            <View className="w-10 h-10">
+              <Image
+                source={require('../../assets/map/bus-pin.png')}
+                className="w-full h-full"
+                resizeMode="contain"
+              />
+            </View>
+          </Marker>
+        ))}
       </MapView>
 
       {/* Locate Me Button */}
@@ -133,20 +149,16 @@ export default function LiveBus() {
         <FontAwesome5 name="location-arrow" size={25} color="#333" />
       </TouchableOpacity>
 
-      {/* Marker Info Modal */}
-      {selectedMarker && (
+      {/* BUS MODAL */}
+      {selectedMarker && busDetails && (
         <MarkerInfoModal
           type="bus"
           marker={{
-            title: busMarker.title,
-            description: busMarker.description,
+            title: busDetails.busName,
+            description: 'Live bus location',
           }}
-          distance="1.2"
-          busDetails={busDetails} // 👈 HERE IT IS
-          onClose={() => {
-            setSelectedMarker(null);
-            setBusDetails(null);
-          }}
+          busDetails={busDetails}
+          onClose={() => setSelectedMarker(null)}
         />
       )}
     </View>
@@ -154,11 +166,8 @@ export default function LiveBus() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    width: '100%',
-    height: '100%',
-  },
+  container: { flex: 1 },
+  map: { width: '100%', height: '100%' },
 });
+
+

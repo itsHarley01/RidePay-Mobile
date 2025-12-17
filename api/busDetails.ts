@@ -2,36 +2,25 @@ import { get, ref } from "firebase/database";
 import { db } from "../firebase/firebase";
 
 /**
- * Get full bus details including:
- * - bus info
- * - assigned device info
- * - number of passengers tapped in this bus
+ * Get full bus details for a single bus
  */
 export const getBusDetails = async (busId: string) => {
   try {
-    /* ---------------- BUS DATA ---------------- */
     const busRef = ref(db, `r1d3-py_bus/${busId}`);
     const busSnapshot = await get(busRef);
 
-    if (!busSnapshot.exists()) {
-      return null;
-    }
+    if (!busSnapshot.exists()) return null;
 
     const busData = busSnapshot.val();
 
-    /* ---------------- DEVICE DATA ---------------- */
+    // Get assigned device data
     let device = null;
-
     if (busData.assignedDevice) {
-      const deviceRef = ref(
-        db,
-        `r1d3-py_devices/${busData.assignedDevice}`
-      );
+      const deviceRef = ref(db, `r1d3-py_devices/${busData.assignedDevice}`);
       const deviceSnapshot = await get(deviceRef);
 
       if (deviceSnapshot.exists()) {
         const d = deviceSnapshot.val();
-
         device = {
           deviceId: busData.assignedDevice,
           deviceName: d.deviceName || "",
@@ -43,26 +32,20 @@ export const getBusDetails = async (busId: string) => {
       }
     }
 
-    /* ---------------- PASSENGER COUNT ---------------- */
+    // Count passengers on this bus
     const passengersRef = ref(db, "p4zs3gr_usr_uu34");
     const passengersSnapshot = await get(passengersRef);
 
     let numberOfPassengers = 0;
-
     if (passengersSnapshot.exists()) {
       passengersSnapshot.forEach((childSnapshot) => {
         const passenger = childSnapshot.val();
-
-        if (
-          passenger.tapped &&
-          passenger.tapped.busId === busId
-        ) {
+        if (passenger.tapped && passenger.tapped.busId === busId) {
           numberOfPassengers++;
         }
       });
     }
 
-    /* ---------------- FINAL OBJECT ---------------- */
     return {
       busId,
       busName: busData.busName || "",
@@ -75,7 +58,53 @@ export const getBusDetails = async (busId: string) => {
       device,
     };
   } catch (error) {
-    console.error("Error fetching full bus details:", error);
+    console.error("Error fetching bus details:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get all buses with busId and latest lat/long if device assigned
+ */
+export const getAllBusesWithLocation = async () => {
+  try {
+    const busesRef = ref(db, "r1d3-py_bus");
+    const busesSnapshot = await get(busesRef);
+
+    if (!busesSnapshot.exists()) return [];
+
+    const buses: Array<{
+      busId: string;
+      busName: string;
+      lat: number | null;
+      long: number | null;
+    }> = [];
+
+    for (const [busId, busData] of Object.entries<any>(busesSnapshot.val())) {
+      let lat: number | null = null;
+      let long: number | null = null;
+
+      if (busData.assignedDevice) {
+        const deviceRef = ref(db, `r1d3-py_devices/${busData.assignedDevice}`);
+        const deviceSnapshot = await get(deviceRef);
+        if (deviceSnapshot.exists()) {
+          const d = deviceSnapshot.val();
+          lat = d.lat ?? null;
+          long = d.long ?? null;
+        }
+      }
+
+      buses.push({
+        busId,
+        busName: busData.busName || "",
+        lat,
+        long,
+      });
+    }
+
+    return buses;
+  } catch (error) {
+    console.error("Error fetching all buses with location:", error);
     throw error;
   }
 };
