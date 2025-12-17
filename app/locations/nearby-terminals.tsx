@@ -1,3 +1,4 @@
+import { fetchStations } from '@/api/fetchLocations';
 import MarkerInfoModal from '@/components/MarkerInfoModal';
 import { FontAwesome5 } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -7,45 +8,31 @@ import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import mapStyle from '../../assets/map/mapStyle.json';
 
+type MapTerminal = {
+  id: string;
+  title: string;
+  description?: string;
+  coordinate: {
+    latitude: number;
+    longitude: number;
+  };
+};
+
 export default function NearbyTerminals() {
   const router = useRouter();
-  const mapRef = useRef(null);
-  const [userLocation, setUserLocation] = useState(null);
-  const [selectedTerminal, setSelectedTerminal] = useState(null);
+  const mapRef = useRef<MapView | null>(null);
 
-  const terminals = [
-    {
-      id: 1,
-      title: 'North Bus Terminal',
-      coordinate: { latitude: 10.3284, longitude: 123.9043 },
-    },
-    {
-      id: 2,
-      title: 'South Bus Terminal',
-      coordinate: { latitude: 10.3006, longitude: 123.8807 },
-    },
-    {
-      id: 3,
-      title: 'Colon Terminal',
-      coordinate: { latitude: 10.2935, longitude: 123.9012 },
-    },
-    {
-      id: 4,
-      title: 'Talamban Terminal',
-      coordinate: { latitude: 10.3598, longitude: 123.9132 },
-    },
-    {
-      id: 5,
-      title: 'Lahug Terminal',
-      coordinate: { latitude: 10.3260, longitude: 123.8912 },
-    },
-    {
-      id: 6,
-      title: 'Ayala Terminal',
-      coordinate: { latitude: 10.3170, longitude: 123.9050 },
-    },
-  ];
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
+  const [terminals, setTerminals] = useState<MapTerminal[]>([]);
+  const [selectedTerminal, setSelectedTerminal] = useState<MapTerminal | null>(null);
+
+  /* ======================================================
+     GET USER LOCATION
+  ====================================================== */
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -57,6 +44,44 @@ export default function NearbyTerminals() {
         longitude: location.coords.longitude,
       });
     })();
+  }, []);
+
+  /* ======================================================
+     FETCH STATIONS (USED AS TERMINALS)
+  ====================================================== */
+  useEffect(() => {
+    const loadStationsAsTerminals = async () => {
+      try {
+        console.log("📡 Fetching stations (used as terminals)...");
+
+        const stations = await fetchStations();
+
+        console.log("✅ Raw station data:", stations);
+
+        if (!stations.length) {
+          console.warn("⚠️ No stations found");
+          return;
+        }
+
+        const formatted: MapTerminal[] = stations.map((station) => ({
+          id: station.id,
+          title: station.name,
+          description: station.address,
+          coordinate: {
+            latitude: station.lat,
+            longitude: station.long,
+          },
+        }));
+
+        console.log("📍 Terminal markers (from stations):", formatted);
+
+        setTerminals(formatted);
+      } catch (error) {
+        console.error("❌ Failed to load terminals:", error);
+      }
+    };
+
+    loadStationsAsTerminals();
   }, []);
 
   return (
@@ -82,29 +107,33 @@ export default function NearbyTerminals() {
         }}
         showsUserLocation
         showsMyLocationButton={false}
+        onPress={() => setSelectedTerminal(null)}
       >
         {terminals.map((terminal) => (
           <Marker
             key={terminal.id}
             coordinate={terminal.coordinate}
-            title={terminal.title}
-            description="Bus terminal"
-            onPress={() => setSelectedTerminal(terminal)}
+            onPress={() => {
+              console.log("🏁 Terminal pressed:", terminal);
+              setSelectedTerminal(terminal);
+            }}
           >
-              <View className="w-10 h-10">
-                <Image
-                    source={require('../../assets/map/terminal-pin.png')}
-                    className="w-full h-full"
-                    resizeMode="contain"
-                  />
-                </View>
-            </Marker>
+            <View className="w-10 h-10">
+              <Image
+                source={require('../../assets/map/terminal-pin.png')}
+                className="w-full h-full"
+                resizeMode="contain"
+              />
+            </View>
+          </Marker>
         ))}
       </MapView>
 
       {/* Locate Me Button */}
       <TouchableOpacity
-        className={`absolute ${selectedTerminal ? 'bottom-[30%]' : 'bottom-5'} right-5 bg-yellow-500 p-3 rounded-full shadow z-10 w-16 h-16 justify-center items-center`}
+        className={`absolute ${
+          selectedTerminal ? 'bottom-[30%]' : 'bottom-5'
+        } right-5 bg-yellow-500 p-3 rounded-full shadow z-10 w-16 h-16 justify-center items-center`}
         onPress={() => {
           if (userLocation) {
             mapRef.current?.animateToRegion({
@@ -120,18 +149,22 @@ export default function NearbyTerminals() {
       </TouchableOpacity>
 
       {/* Marker Info Modal */}
-      {selectedTerminal && (
+      {selectedTerminal && selectedTerminal.title && (
         <MarkerInfoModal
-  type="terminal"
-  marker={{ title: selectedTerminal.title }}
-  onClose={() => setSelectedTerminal(null)}
-  terminalDetails={{
-    location: selectedTerminal.title,
-    description: 'Bus terminal servicing local routes.',
-    terminalCode: `TERM-${selectedTerminal.id.toString().padStart(3, '0')}`,
-  }}
-/>
-
+          type="terminal"
+          marker={{
+            title: selectedTerminal.title,
+            description: selectedTerminal.description,
+          }}
+          onClose={() => setSelectedTerminal(null)}
+          terminalDetails={{
+            terminalCode: `TERM-${selectedTerminal.id.slice(0, 5).toUpperCase()}`,
+            location: selectedTerminal.title,
+            description:
+              selectedTerminal.description ||
+              'Bus terminal servicing local routes.',
+          }}
+        />
       )}
     </View>
   );

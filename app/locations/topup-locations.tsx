@@ -1,4 +1,5 @@
-import MarkerInfoModal from '@/components/MarkerInfoModal'; // Adjust path as needed
+import { fetchStations } from '@/api/fetchLocations'; // 👈 adjust path if needed
+import MarkerInfoModal from '@/components/MarkerInfoModal';
 import { FontAwesome5 } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
@@ -8,12 +9,31 @@ import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import mapStyle from '../../assets/map/mapStyle.json';
 
+type MapMarker = {
+  id: string;
+  title: string;
+  description?: string;
+  coordinate: {
+    latitude: number;
+    longitude: number;
+  };
+};
+
 export default function TopupLocations() {
   const router = useRouter();
-  const mapRef = useRef(null);
-  const [selectedMarker, setSelectedMarker] = useState(null);
-  const [userLocation, setUserLocation] = useState(null);
+  const mapRef = useRef<MapView | null>(null);
 
+  const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+
+  const [markers, setMarkers] = useState<MapMarker[]>([]);
+
+  /* ======================================================
+     GET USER LOCATION
+  ====================================================== */
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -27,32 +47,43 @@ export default function TopupLocations() {
     })();
   }, []);
 
-  const markers = [
-    {
-      id: '1',
-      title: 'Top-up Station 1',
-      description: 'Ayala Center Cebu',
-      coordinate: { latitude: 10.3173, longitude: 123.9058 },
-    },
-    {
-      id: '2',
-      title: 'Top-up Station 2',
-      description: 'SM City Cebu',
-      coordinate: { latitude: 10.3246, longitude: 123.9221 },
-    },
-    {
-      id: '3',
-      title: 'Top-up Station 3',
-      description: 'IT Park Cebu',
-      coordinate: { latitude: 10.3282, longitude: 123.9080 },
-    },
-    {
-      id: '4',
-      title: 'Top-up Station 4',
-      description: 'Fuente Osmeña Circle',
-      coordinate: { latitude: 10.3100, longitude: 123.8910 },
-    },
-  ];
+  /* ======================================================
+     FETCH STATIONS FROM FIREBASE
+  ====================================================== */
+  useEffect(() => {
+  const loadStations = async () => {
+    try {
+      console.log("📡 Fetching stations from Firebase...");
+
+      const stations = await fetchStations();
+
+      console.log("✅ Raw stations data:", stations);
+
+      if (!stations || stations.length === 0) {
+        console.warn("⚠️ No stations found in database");
+      }
+
+      const formattedMarkers: MapMarker[] = stations.map((station) => ({
+        id: station.id,
+        title: station.name,
+        description: station.address,
+        coordinate: {
+          latitude: station.lat,
+          longitude: station.long,
+        },
+      }));
+
+      console.log("📍 Formatted station markers:", formattedMarkers);
+
+      setMarkers(formattedMarkers);
+    } catch (error) {
+      console.error("❌ Error fetching stations:", error);
+    }
+  };
+
+  loadStations();
+}, []);
+
 
   return (
     <View style={styles.container}>
@@ -77,23 +108,25 @@ export default function TopupLocations() {
         }}
         showsUserLocation
         showsMyLocationButton={false}
-        onPress={() => setSelectedMarker(null)} // Dismiss  on map tap
+        onPress={() => setSelectedMarker(null)}
       >
         {markers.map((marker) => (
-          <Marker
-            key={marker.id}
-            coordinate={marker.coordinate}
-            title={marker.title}
-            description={marker.description}
-            onPress={() => setSelectedMarker(marker)}
-          >
+<Marker
+  key={marker.id}
+  coordinate={marker.coordinate}
+  onPress={() => {
+    console.log("📍 Marker pressed:", marker);
+    setSelectedMarker(marker);
+  }}
+>
+
             <View className="w-10 h-10">
               <Image
-                  source={require('../../assets/map/station-pin.png')}
-                  className="w-full h-full"
-                  resizeMode="contain"
-                />
-              </View>
+                source={require('../../assets/map/station-pin.png')}
+                className="w-full h-full"
+                resizeMode="contain"
+              />
+            </View>
           </Marker>
         ))}
       </MapView>
@@ -117,19 +150,25 @@ export default function TopupLocations() {
         <FontAwesome5 name="location-arrow" size={25} color="#333" />
       </TouchableOpacity>
 
-      {/* Modal */}
-      {selectedMarker && (
-        <MarkerInfoModal
-          type="topup"
-          marker={selectedMarker}
-          distance={
-            userLocation
-              ? (getDistance(userLocation, selectedMarker.coordinate) / 1000).toFixed(2)
-              : '...'
-          }
-          onClose={() => setSelectedMarker(null)}
-        />
-      )}
+      {/* Marker Modal */}
+     {selectedMarker && selectedMarker.title && (
+  <MarkerInfoModal
+    type="topup"
+    marker={{
+      title: selectedMarker.title,
+      description: selectedMarker.description,
+    }}
+    distance={
+      userLocation
+        ? (
+            getDistance(userLocation, selectedMarker.coordinate) / 1000
+          ).toFixed(2)
+        : undefined
+    }
+    onClose={() => setSelectedMarker(null)}
+  />
+)}
+
     </View>
   );
 }

@@ -1,7 +1,9 @@
+import { fetchStations } from '@/api/fetchLocations';
 import MarkerInfoModal from '@/components/MarkerInfoModal';
 import { FontAwesome5 } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
+import { getDistance } from 'geolib';
 import React, { useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
@@ -58,32 +60,82 @@ export default function LiveBus() {
   }, []);
 
   /* ---------------- FETCH SINGLE BUS DETAILS ---------------- */
-  const handleMarkerPress = async (busId: string) => {
-    setSelectedMarker(busId);
-    setLoadingBus(true);
 
-    try {
-      const data = await getBusDetails(busId);
-      if (!data) {
-        console.warn('⚠️ Bus not found for BUS_ID:', busId);
-        return;
-      }
-      setBusDetails(data);
+const handleMarkerPress = async (busId: string) => {
+  setSelectedMarker(busId);
+  setLoadingBus(true);
 
-      if (data.device?.lat != null && data.device?.long != null) {
-        mapRef.current?.animateToRegion({
-          latitude: data.device.lat,
-          longitude: data.device.long,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        });
-      }
-    } catch (e) {
-      console.error('🔥 Failed to load bus details:', e);
-    } finally {
-      setLoadingBus(false);
+  try {
+    const data = await getBusDetails(busId);
+    if (!data) {
+      console.warn('⚠️ Bus not found for BUS_ID:', busId);
+      return;
     }
-  };
+    setBusDetails(data);
+
+    // Animate map to bus location
+    if (data.device?.lat != null && data.device?.long != null) {
+      mapRef.current?.animateToRegion({
+        latitude: data.device.lat,
+        longitude: data.device.long,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+    }
+
+    // ---------- NEW: Calculate ETA to nearest station ----------
+    if (data.device?.lat != null && data.device?.long != null) {
+      const stations = await fetchStations();
+
+      if (stations.length > 0) {
+        // Find nearest station
+        let nearest = stations[0];
+        let minDistance = getDistance(
+          { latitude: data.device.lat, longitude: data.device.long },
+          { latitude: nearest.lat, longitude: nearest.long }
+        );
+
+        stations.forEach((station) => {
+          const dist = getDistance(
+            { latitude: data.device.lat, longitude: data.device.long },
+            { latitude: station.lat, longitude: station.long }
+          );
+          if (dist < minDistance) {
+            minDistance = dist;
+            nearest = station;
+          }
+        });
+
+        // Distance in km
+        const distanceKm = minDistance / 1000;
+
+        // Bus speed in km/h (default 20 km/h if undefined)
+        const speed = data.speed || 20; 
+        const etaHours = distanceKm / speed;
+
+        // Convert to minutes
+        const etaMinutes = etaHours * 60;
+
+        // Create range (±50%)
+        const margin = 0.2;
+        const etaMin = Math.floor(etaMinutes * (1 - margin));
+        const etaMax = Math.ceil(etaMinutes * (1 + margin));
+
+        const etaRange = `${etaMin} - ${etaMax} mins`;
+
+        console.log(`🚏 Nearest station: ${nearest.name}, ETA: ${etaRange}`);
+
+        // Save in busDetails so we can pass to MarkerInfoModal
+        setBusDetails({ ...data, etaToNextStation: etaRange, nearestStation: nearest.name });
+      }
+    }
+  } catch (e) {
+    console.error('🔥 Failed to load bus details:', e);
+  } finally {
+    setLoadingBus(false);
+  }
+};
+
 
   return (
     <View style={styles.container}>
@@ -151,15 +203,21 @@ export default function LiveBus() {
 
       {/* BUS MODAL */}
       {selectedMarker && busDetails && (
-        <MarkerInfoModal
-          type="bus"
-          marker={{
-            title: busDetails.busName,
-            description: 'Live bus location',
-          }}
-          busDetails={busDetails}
-          onClose={() => setSelectedMarker(null)}
-        />
+       <MarkerInfoModal
+  type="bus"
+  marker={{
+    title: busDetails.busName,
+    description: 'Live bus location',
+  }}
+  busDetails={busDetails}
+  routeDetails={busDetails.etaToNextStation ? {
+    from: busDetails.busName,
+    to: busDetails.nearestStation,
+    totalDistance: '...', // optional
+    estimatedTime: busDetails.etaToNextStation,
+  } : undefined}
+  onClose={() => setSelectedMarker(null)}
+/>
       )}
     </View>
   );

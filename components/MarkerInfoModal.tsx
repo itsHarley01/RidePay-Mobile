@@ -14,6 +14,9 @@ type BusDetails = {
   licensePlate: string;
   assignedDevice: string | null;
   numberOfPassengers: number;
+  speed?: number; // optional
+  nearestStation?: string; // added
+  etaToNextStation?: string; // added
 };
 
 export default function MarkerInfoModal({
@@ -105,6 +108,16 @@ export default function MarkerInfoModal({
               Available Seats: <Text className="text-white font-semibold">{availableSeats}</Text>
             </Text>
           </View>
+
+          {busDetails?.nearestStation && busDetails?.etaToNextStation && (
+  <View className="flex-row items-center gap-2">
+    <FontAwesome5 name="clock" size={18} color="white" />
+    <Text className="text-gray-300">
+      ETA to {busDetails.nearestStation}: <Text className="text-white font-semibold">{busDetails.etaToNextStation}</Text>
+    </Text>
+  </View>
+)}
+
         </View>
       )}
 

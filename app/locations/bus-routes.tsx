@@ -1,3 +1,4 @@
+import { fetchBusRoutes } from '@/api/fetchLocations'; // adjust path if needed
 import MarkerInfoModal from '@/components/MarkerInfoModal';
 import { FontAwesome5 } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -7,12 +8,30 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import MapView, { Polyline } from 'react-native-maps';
 import mapStyle from '../../assets/map/mapStyle.json';
 
+type MapRoute = {
+  id: string;
+  name: string;
+  coordinates: {
+    latitude: number;
+    longitude: number;
+  }[];
+};
+
 export default function BusRoutes() {
   const router = useRouter();
-  const mapRef = useRef(null);
-  const [userLocation, setUserLocation] = useState(null);
-  const [selectedRoute, setSelectedRoute] = useState(null);
+  const mapRef = useRef<MapView | null>(null);
 
+  const [userLocation, setUserLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+
+  const [routes, setRoutes] = useState<MapRoute[]>([]);
+  const [selectedRoute, setSelectedRoute] = useState<MapRoute | null>(null);
+
+  /* ======================================================
+     GET USER LOCATION
+  ====================================================== */
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -26,35 +45,38 @@ export default function BusRoutes() {
     })();
   }, []);
 
-  const routes = [
-    {
-      id: 'route1',
-      name: 'Route 1',
-      start: 'Colon St.',
-      end: 'IT Park',
-      coordinates: [
-        { latitude: 10.3100, longitude: 123.8800 },
-        { latitude: 10.3157, longitude: 123.8854 },
-        { latitude: 10.3200, longitude: 123.8900 },
-        { latitude: 10.3250, longitude: 123.8950 },
-      ],
-      strokeColor: '#1E90FF',
-    },
-    {
-      id: 'route2',
-      name: 'Route 2',
-      start: 'SRP',
-      end: 'Banilad',
-      coordinates: [
-        { latitude: 10.3000, longitude: 123.8700 },
-        { latitude: 10.3050, longitude: 123.8750 },
-        { latitude: 10.3100, longitude: 123.8800 },
-        { latitude: 10.3150, longitude: 123.8900 },
-        { latitude: 10.3200, longitude: 123.9000 },
-      ],
-      strokeColor: '#32CD32',
-    },
-  ];
+  /* ======================================================
+     FETCH ROUTES FROM FIREBASE
+  ====================================================== */
+  useEffect(() => {
+    const loadRoutes = async () => {
+      console.log('📡 Fetching bus routes from Firebase...');
+
+      const fetchedRoutes = await fetchBusRoutes();
+
+      console.log('✅ Raw routes:', fetchedRoutes);
+
+      if (!fetchedRoutes.length) {
+        console.warn('⚠️ No bus routes found');
+        return;
+      }
+
+      const formattedRoutes: MapRoute[] = fetchedRoutes.map((route) => ({
+        id: route.id,
+        name: route.name,
+        coordinates: route.pins.map((pin) => ({
+          latitude: pin.lat,
+          longitude: pin.long,
+        })),
+      }));
+
+      console.log('🧭 Formatted routes:', formattedRoutes);
+
+      setRoutes(formattedRoutes);
+    };
+
+    loadRoutes();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -79,22 +101,27 @@ export default function BusRoutes() {
         }}
         showsUserLocation
         showsMyLocationButton={false}
+        onPress={() => setSelectedRoute(null)}
       >
         {routes.map((route) => (
           <Polyline
             key={route.id}
             coordinates={route.coordinates}
-            strokeColor={route.strokeColor}
             strokeWidth={5}
             tappable
-            onPress={() => setSelectedRoute(route)}
+            onPress={() => {
+              console.log('🟢 Route pressed:', route);
+              setSelectedRoute(route);
+            }}
           />
         ))}
       </MapView>
 
       {/* Locate Me Button */}
       <TouchableOpacity
-        className={`absolute ${selectedRoute ? 'bottom-[30%]' : 'bottom-5'} right-5 bg-yellow-500 p-3 rounded-full shadow z-10 w-16 h-16 justify-center items-center`}
+        className={`absolute ${
+          selectedRoute ? 'bottom-[30%]' : 'bottom-5'
+        } right-5 bg-yellow-500 p-3 rounded-full shadow z-10 w-16 h-16 justify-center items-center`}
         onPress={() => {
           if (userLocation) {
             mapRef.current?.animateToRegion({
@@ -111,21 +138,20 @@ export default function BusRoutes() {
 
       {/* Route Info Modal */}
       {selectedRoute && (
-  <MarkerInfoModal
-    type="route"
-    marker={{ title: selectedRoute.name }}
-    onClose={() => setSelectedRoute(null)}
-    routeDetails={{
-      from: selectedRoute.start,
-      to: selectedRoute.end,
-      totalDistance: (
-        selectedRoute.coordinates.length * 1.5 // Simulate distance (adjust as needed)
-      ).toFixed(1),
-      estimatedTime: `${selectedRoute.coordinates.length * 5} mins`, // Simulate ETA
-    }}
-  />
-)}
-
+        <MarkerInfoModal
+          type="route"
+          marker={{ title: selectedRoute.name }}
+          onClose={() => setSelectedRoute(null)}
+          routeDetails={{
+            from: 'Start Point',
+            to: 'End Point',
+            totalDistance: (
+              selectedRoute.coordinates.length * 1.5
+            ).toFixed(1),
+            estimatedTime: `${selectedRoute.coordinates.length * 5} mins`,
+          }}
+        />
+      )}
     </View>
   );
 }
